@@ -205,6 +205,7 @@
         // --- PROFIL ÉLÈVE ---
         let studentName = "";
         let studentGender = ""; // "M" ou "F"
+        let totalExamScore = 0; // Cumul des scores sur l'ensemble de l'examen (max 16)
 
         // Soumission automatique lors du choix du genre
         function selectGenderAndSubmit(gender) {
@@ -216,6 +217,7 @@
 
             studentName = nameInput;
             studentGender = gender;
+            totalExamScore = 0; // Réinitialiser le score au démarrage
             
             // Masquer l'écran d'enregistrement et afficher l'accueil
             document.getElementById("login-screen").classList.add("hidden");
@@ -323,14 +325,6 @@
             activeInstruments.forEach(inst => {
                 if (audioCtx.currentTime < inst.startTime + inst.duration) {
                     inst.gainNode.gain.setValueAtTime(inst.originalVolume * factor, audioCtx.currentTime);
-                }
-            });
-        }
-
-        function resetAllMusicVolume() {
-            activeInstruments.forEach(inst => {
-                if (audioCtx.currentTime < inst.startTime + inst.duration) {
-                    inst.gainNode.gain.setValueAtTime(inst.originalVolume, audioCtx.currentTime);
                 }
             });
         }
@@ -608,6 +602,7 @@
             userAnswers.push(selectedKey);
             if (selectedKey === LEVELS[currentLevel][currentIndex].correct) {
                 score++;
+                totalExamScore++; // On ajoute la note au cumul global de l'élève
             }
             currentIndex++;
             if (currentIndex < LEVELS[currentLevel].length) {
@@ -664,6 +659,9 @@
                     actionBtn.innerText = "🏠 Revenir à l'accueil";
 
                     spokenMessage = `Merveilleux ! Toutes nos félicitations ${prefix} ${studentName} ! Vous venez de réussir tous les niveaux avec succès et devenez officiellement un expert en T I C de septième année !`;
+                    
+                    // L'examen est fini avec succès, on envoie la note parfaite (16/16)
+                    envoyerNoteA_Excel(studentName, prefix, totalExamScore);
                 }
 
                 speak(spokenMessage, 0.1);
@@ -685,6 +683,9 @@
 
                 const failMessage = `Oh dommage, ${prefix} ${studentName}. Ne vous découragez pas. Reprenez le niveau tranquillement pour obtenir votre sans-faute.`;
                 speak(failMessage, 0.1);
+
+                // L'élève a échoué. On envoie immédiatement sa note actuelle arrêtée à ce niveau sur 16 points.
+                envoyerNoteA_Excel(studentName, prefix, totalExamScore);
             }
 
             // Correction détaillée
@@ -727,6 +728,8 @@
             stopVisualEffects();
             stopAllMusic();
             window.speechSynthesis.cancel();
+            // On enlève le score obtenu précédemment pour ce niveau lors de la reprise
+            totalExamScore = Math.max(0, totalExamScore - score); 
             startLevel(currentLevel);
         }
 
@@ -779,6 +782,41 @@
                     badge.onclick = null;
                 }
             }
+        }
+
+        // --- ENVOI AUTOMATIQUE DES NOTES VERS GOOGLE SHEETS VIA SHEETDB ---
+        function envoyerNoteA_Excel(nomEleve, civiliteEleve, scoreEleve) {
+            // Configuration automatique avec votre lien SheetDB personnel :
+            const apiURL = "https://sheetdb.io/api/v1/8jutgab6bhp94"; 
+            
+            const dateAujourdhui = new Date().toLocaleString("fr-FR");
+
+            const donnees = {
+                data: [
+                    {
+                        nom: nomEleve,
+                        civilite: civiliteEleve,
+                        score: scoreEleve + " / 16", // Note finale cumulée sur l'ensemble des questions
+                        date: dateAujourdhui
+                    }
+                ]
+            };
+
+            fetch(apiURL, {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(donnees)
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log("Note enregistrée avec succès !", data);
+            })
+            .catch(error => {
+                console.error("Erreur d'envoi :", error);
+            });
         }
     </script>
 </body>
