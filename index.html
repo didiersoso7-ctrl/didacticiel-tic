@@ -6,11 +6,18 @@
     <title>Didacticiel TIC - Level System Expert</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Caveat:wght@600;700&display=swap');
+        
         body {
             font-family: 'Space Grotesk', sans-serif;
             transition: background-color 0.8s ease;
         }
+        
+        /* Police stylisée pour le développeur */
+        .dev-signature {
+            font-family: 'Caveat', cursive;
+        }
+
         /* Style de scrollbar moderne et discret */
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-track { background: #0b0f19; }
@@ -76,8 +83,14 @@
 
     <div id="visual-effects-container" class="absolute inset-0 pointer-events-none overflow-hidden z-0"></div>
 
-    <div id="main-card" class="max-w-lg w-full bg-[#0d1321]/95 backdrop-blur-md p-5 sm:p-6 rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.7)] border border-slate-800 transition-all duration-700 relative z-20">
+    <!-- Cadre Principal -->
+    <div id="main-card" class="max-w-lg w-full bg-[#0d1321]/95 backdrop-blur-md p-5 sm:p-6 pt-9 sm:pt-10 rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.7)] border border-slate-800 transition-all duration-700 relative z-20">
         
+        <!-- Signature du développeur (Toujours visible au sommet droit de la zone) -->
+        <div class="absolute top-2 right-4 text-slate-400/80 hover:text-indigo-400 text-sm sm:text-base dev-signature tracking-wide transition-colors duration-300 select-none pointer-events-none">
+            Conçu par Dm's, le developpeur web
+        </div>
+
         <div id="login-screen" class="text-center py-4">
             <div class="inline-block bg-blue-500/10 text-blue-400 border border-blue-500/20 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider mb-3">
                 🏫 Enregistrement Élève
