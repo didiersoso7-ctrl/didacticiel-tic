@@ -186,15 +186,12 @@
                 <div id="correction-list" class="space-y-3 text-xs"></div>
             </div>
 
-            <div class="flex flex-col gap-2 sm:flex-row">
-                <button onclick="goHome()" class="flex-1 bg-slate-800/80 hover:bg-slate-700 text-slate-200 font-bold py-3 rounded-xl text-xs transition duration-150">
-                    🏠 Menu Principal
-                </button>
-                <button id="retry-btn" onclick="retryCurrentLevel()" class="flex-1 bg-slate-900 hover:bg-slate-850 text-slate-300 font-bold py-3 rounded-xl text-xs border border-slate-850 transition duration-150">
-                    🔄 Recommencer
-                </button>
-                <button id="action-btn" onclick="nextAction()" class="flex-1 text-white font-bold py-3 rounded-xl text-xs transition duration-150 shadow-md">
+            <div class="flex flex-col gap-3">
+                <button id="action-btn" onclick="nextAction()" class="w-full text-white font-bold py-3.5 rounded-xl text-xs sm:text-sm transition duration-150 shadow-md">
                     Passer au Level Suivant
+                </button>
+                <button id="menu-btn" onclick="goHome()" class="hidden w-full bg-slate-800/80 hover:bg-slate-700 text-slate-200 font-bold py-3 rounded-xl text-xs transition duration-150">
+                    🏠 Menu Principal
                 </button>
             </div>
         </div>
@@ -630,11 +627,12 @@
             const statusEl = document.getElementById("result-status");
             const iconEl = document.getElementById("result-icon");
             const actionBtn = document.getElementById("action-btn");
+            const menuBtn = document.getElementById("menu-btn");
             const card = document.getElementById("main-card");
 
             card.classList.remove("shake-element");
 
-            // --- DEBLOCAGE AUTOMATIQUE DU NIVEAU SUIVANT DANS TOUS LES CAS ---
+            // --- DEBLOCAGE DU NIVEAU SUIVANT SANS EXCEPTION ---
             if (currentLevel < 3) {
                 if (!unlockedLevels.includes(currentLevel + 1)) {
                     unlockedLevels.push(currentLevel + 1);
@@ -647,7 +645,8 @@
 
                 titleEl.className = "text-xl sm:text-2xl font-extrabold text-emerald-400 mb-1";
                 statusEl.className = "text-sm font-semibold text-emerald-400 mb-4";
-                actionBtn.className = `flex-1 text-white font-bold py-3 rounded-xl text-xs transition duration-150 shadow-md ${theme.button}`;
+                actionBtn.className = `w-full text-white font-bold py-3.5 rounded-xl text-xs sm:text-sm transition duration-150 shadow-md ${theme.button}`;
+                menuBtn.classList.add("hidden"); // Cache le bouton retour durant le parcours
 
                 let spokenMessage = "";
                 if (currentLevel < 3) {
@@ -661,7 +660,10 @@
                     iconEl.innerText = "🏆";
                     titleEl.innerText = "Maître Suprême des TIC !";
                     statusEl.innerText = "Excellent travail ! Vous avez complété tous les niveaux !";
-                    actionBtn.innerText = "🏠 Revenir à l'accueil";
+                    
+                    // Fin complète de l'examen : On active le bouton de retour à l'accueil
+                    actionBtn.innerText = "🏠 Revenir à l'accueil (Recommencer)";
+                    actionBtn.className = "w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3.5 rounded-xl text-xs sm:text-sm transition duration-150 shadow-md";
 
                     spokenMessage = `Merveilleux ! Toutes nos félicitations ${prefix} ${studentName} ! Vous venez de terminer tous les niveaux avec succès !`;
                     
@@ -671,7 +673,6 @@
                 speak(spokenMessage, 0.1);
 
             } else {
-                // Même en cas d'échec, le niveau suivant est débloqué !
                 playFailureMusic();
                 startFailureRain();
                 
@@ -681,21 +682,22 @@
                 titleEl.className = "text-xl sm:text-2xl font-extrabold text-yellow-500 mb-1";
                 titleEl.innerText = "Niveau Terminé avec des erreurs";
                 statusEl.className = "text-sm font-semibold text-slate-300 mb-4";
-                
+                menuBtn.classList.add("hidden"); // Sécurité : pas de triche ou de retour intermédiaire
+
                 if (currentLevel < 3) {
                     statusEl.innerText = "Le niveau suivant a été débloqué pour vous permettre de continuer l'apprentissage !";
-                    actionBtn.className = `flex-1 text-white font-bold py-3 rounded-xl text-xs transition duration-150 shadow-md ${theme.button}`;
+                    actionBtn.className = `w-full text-white font-bold py-3.5 rounded-xl text-xs sm:text-sm transition duration-150 shadow-md ${theme.button}`;
                     actionBtn.innerText = "Passer au Level " + (currentLevel + 1) + " ➔";
                 } else {
                     statusEl.innerText = "Vous êtes arrivé au bout du parcours !";
-                    actionBtn.className = "flex-1 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold py-3 rounded-xl text-xs transition duration-150 shadow-md";
-                    actionBtn.innerText = "🏠 Revenir à l'accueil";
+                    actionBtn.className = "w-full bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold py-3.5 rounded-xl text-xs sm:text-sm transition duration-150 shadow-md";
+                    actionBtn.innerText = "🏠 Revenir à l'accueil (Recommencer)";
                 }
 
                 const failMessage = `Vous avez fait quelques erreurs, ${prefix} ${studentName}, mais pas de panique ! Nous débloquons le niveau suivant pour vous encourager à continuer d'apprendre.`;
                 speak(failMessage, 0.1);
 
-                // Enregistrement de la note intermédiaire
+                // Sauvegarde de la note intermédiaire/finale
                 envoyerNoteA_Excel(studentName, prefix, totalExamScore);
             }
 
@@ -724,21 +726,11 @@
             stopAllMusic();
             window.speechSynthesis.cancel();
             
-            // On passe systématiquement au niveau suivant s'il existe
             if (currentLevel < 3) {
                 startLevel(currentLevel + 1);
             } else {
                 goHome();
             }
-        }
-
-        function retryCurrentLevel() {
-            stopVisualEffects();
-            stopAllMusic();
-            window.speechSynthesis.cancel();
-            // On soustrait le score fait lors de ce niveau avant de le recommencer pour éviter de tricher sur le cumul
-            totalExamScore = Math.max(0, totalExamScore - score); 
-            startLevel(currentLevel);
         }
 
         function goHome() {
@@ -750,6 +742,9 @@
             document.getElementById("main-card").style.boxShadow = "0 0 40px rgba(0,0,0,0.6)";
             document.getElementById("result-screen").classList.add("hidden");
             document.getElementById("home-screen").classList.remove("hidden");
+            
+            // À la fin du parcours complet (retour à l'accueil), on réinitialise l'accès pour pouvoir recommencer
+            unlockedLevels = [1];
             updateHomeDashboard();
         }
 
