@@ -128,12 +128,12 @@
                 <div id="status-l1" onclick="startLevel(1)" class="bg-blue-950/20 border border-blue-500/30 p-3 rounded-xl cursor-pointer hover:scale-[1.02] transition-all duration-200">
                     <span class="block text-[10px] text-blue-400 font-bold">LEVEL 1</span>
                     <span class="block text-xs font-bold text-slate-200">Facile</span>
-                    <span class="text-[9px] text-slate-400">4 Q (4/4 requis)</span>
+                    <span class="text-[9px] text-slate-400">4 Q</span>
                 </div>
                 <div id="status-l2" class="bg-slate-900/10 border border-slate-800/30 p-3 rounded-xl opacity-40 transition-all duration-200">
                     <span class="block text-[10px] text-purple-400 font-bold">LEVEL 2</span>
                     <span class="block text-xs font-bold text-slate-400">Moyen 🔒</span>
-                    <span class="text-[9px] text-slate-500">5 Q (5/5 requis)</span>
+                    <span class="text-[9px] text-slate-500">5 Q</span>
                 </div>
                 <div id="status-l3" class="bg-slate-900/10 border border-slate-800/30 p-3 rounded-xl opacity-40 transition-all duration-200">
                     <span class="block text-[10px] text-rose-400 font-bold">LEVEL 3</span>
@@ -255,6 +255,10 @@
             window.speechSynthesis.speak(utterance);
         }
 
+        function resetAllMusicVolume() {
+            setAllMusicVolume(1.0);
+        }
+
         // --- BASE DE DONNÉES PAR NIVEAUX ---
         const LEVELS = {
             1: [
@@ -287,14 +291,13 @@
             3: { primary: "rgb(244, 63, 94)", bg: "#16050b", border: "rgba(244, 63, 94, 0.3)", glow: "rgba(244, 63, 94, 0.2)", text: "text-rose-400", badge: "bg-rose-500/20 text-rose-300 border-rose-500/30", bar: "bg-gradient-to-r from-rose-500 to-orange-500", button: "bg-rose-600 hover:bg-rose-500" }
         };
 
-        // --- ENREGISTREMENT DE VOS VRAIS FICHIERS IMAGES REÇUS ---
         const REAL_FLOWERS = [
             "fleur1.png",
             "fleur2.png",
             "fleur3.png"
         ];
 
-        // --- GÉNÉRATEUR AUDIO (BOUCLES INFINIES EN CONTIRE) ---
+        // --- GÉNÉRATEUR AUDIO (BOUCLES INFINIES EN CONTINU) ---
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         let backgroundMusicNode = null;
         let successMusicNode = null;
@@ -329,7 +332,6 @@
             });
         }
 
-        // Musique en boucle infinie
         function playCombinedMusicLoop(patterns, tempo) {
             if (audioCtx.state === 'suspended') audioCtx.resume();
 
@@ -354,7 +356,7 @@
                 beatIndex++;
             }
 
-            runBeat(); // Joue instantanément
+            runBeat();
             const interval = setInterval(runBeat, tempo * 1000);
 
             return {
@@ -451,18 +453,14 @@
             visualEffectsInterval = setInterval(() => {
                 const img = document.createElement("img");
                 img.className = "flower-item";
-                
-                // Utilisation exclusive des fichiers réels reçus
                 img.src = REAL_FLOWERS[Math.floor(Math.random() * REAL_FLOWERS.length)];
-                
                 img.style.left = (Math.random() * 85) + "vw";
-                const size = Math.random() * 70 + 90; // Taille imposante et bien visible des fleurs
+                const size = Math.random() * 70 + 90;
                 img.style.width = size + "px";
                 img.style.height = "auto";
                 img.style.animationDuration = (Math.random() * 2.5 + 4.5) + "s";
 
                 container.appendChild(img);
-                
                 setTimeout(() => img.remove(), 7500);
             }, 350);
         }
@@ -602,7 +600,7 @@
             userAnswers.push(selectedKey);
             if (selectedKey === LEVELS[currentLevel][currentIndex].correct) {
                 score++;
-                totalExamScore++; // On ajoute la note au cumul global de l'élève
+                totalExamScore++; // Cumul global
             }
             currentIndex++;
             if (currentIndex < LEVELS[currentLevel].length) {
@@ -635,8 +633,15 @@
 
             card.classList.remove("shake-element");
 
+            // --- NOUVEAUTÉ : LE NIVEAU SUIVANT SE DÉBLOQUE DANS TOUS LES CAS ! ---
+            if (currentLevel < 3) {
+                if (!unlockedLevels.includes(currentLevel + 1)) {
+                    unlockedLevels.push(currentLevel + 1);
+                }
+            }
+
             if (isWin) {
-                playVictoryMusic(); // Lancé en boucle continue !
+                playVictoryMusic();
                 startVictoryFlowers();
 
                 titleEl.className = "text-xl sm:text-2xl font-extrabold text-emerald-400 mb-1";
@@ -647,44 +652,49 @@
                 if (currentLevel < 3) {
                     iconEl.innerText = "👑";
                     titleEl.innerText = `Niveau ${currentLevel} Complété !`;
-                    statusEl.innerText = "Parfait ! Vous avez débloqué le niveau suivant avec brio !";
+                    statusEl.innerText = "Parfait ! Vous passez au niveau suivant !";
                     actionBtn.innerText = "Lancer le Level " + (currentLevel + 1) + " ➔";
-                    if (!unlockedLevels.includes(currentLevel + 1)) unlockedLevels.push(currentLevel + 1);
 
-                    spokenMessage = `Félicitations, ${prefix} ${studentName} ! Vous avez brillamment réussi le niveau ${currentLevel} de notre didacticiel ! Toutes nos fleurs sont pour vous !`;
+                    spokenMessage = `Félicitations, ${prefix} ${studentName} ! Vous avez brillamment réussi le niveau ${currentLevel} ! Passons maintenant au suivant.`;
                 } else {
                     iconEl.innerText = "🏆";
                     titleEl.innerText = "Maître Suprême des TIC !";
-                    statusEl.innerText = "Excellent travail ! Vous avez brillamment complété tous les niveaux !";
+                    statusEl.innerText = "Excellent travail ! Vous avez complété tous les niveaux !";
                     actionBtn.innerText = "🏠 Revenir à l'accueil";
 
-                    spokenMessage = `Merveilleux ! Toutes nos félicitations ${prefix} ${studentName} ! Vous venez de réussir tous les niveaux avec succès et devenez officiellement un expert en T I C de septième année !`;
+                    spokenMessage = `Merveilleux ! Toutes nos félicitations ${prefix} ${studentName} ! Vous venez de terminer tous les niveaux avec succès !`;
                     
-                    // L'examen est fini avec succès, on envoie la note parfaite (16/16)
                     envoyerNoteA_Excel(studentName, prefix, totalExamScore);
                 }
 
                 speak(spokenMessage, 0.1);
 
             } else {
-                playFailureMusic(); // Lancé en boucle continue !
+                // Même en cas d'échec, le niveau suivant est débloqué !
+                playFailureMusic();
                 startFailureRain();
                 
                 card.classList.add("shake-element");
 
-                iconEl.innerText = "❌";
-                titleEl.className = "text-xl sm:text-2xl font-extrabold text-red-500 mb-1";
-                titleEl.innerText = "Niveau Échoué !";
-                statusEl.className = "text-sm font-semibold text-red-400 mb-4";
-                statusEl.innerText = "Ne vous découragez pas. Obtenez un sans-faute pour débloquer le niveau suivant.";
+                iconEl.innerText = "⚠️";
+                titleEl.className = "text-xl sm:text-2xl font-extrabold text-yellow-500 mb-1";
+                titleEl.innerText = "Niveau Terminé avec des erreurs";
+                statusEl.className = "text-sm font-semibold text-slate-300 mb-4";
                 
-                actionBtn.className = "flex-1 bg-red-600 hover:bg-red-500 text-white font-bold py-3 rounded-xl text-xs transition duration-150 shadow-md";
-                actionBtn.innerText = "🔄 Réessayer le niveau";
+                if (currentLevel < 3) {
+                    statusEl.innerText = "Le niveau suivant a été débloqué pour vous permettre de continuer l'apprentissage !";
+                    actionBtn.className = `flex-1 text-white font-bold py-3 rounded-xl text-xs transition duration-150 shadow-md ${theme.button}`;
+                    actionBtn.innerText = "Lancer le Level " + (currentLevel + 1) + " ➔";
+                } else {
+                    statusEl.innerText = "Vous êtes arrivé au bout du parcours !";
+                    actionBtn.className = "flex-1 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold py-3 rounded-xl text-xs transition duration-150 shadow-md";
+                    actionBtn.innerText = "🏠 Revenir à l'accueil";
+                }
 
-                const failMessage = `Oh dommage, ${prefix} ${studentName}. Ne vous découragez pas. Reprenez le niveau tranquillement pour obtenir votre sans-faute.`;
+                const failMessage = `Vous avez fait quelques erreurs, ${prefix} ${studentName}, mais pas de panique ! Nous débloquons le niveau suivant pour vous encourager à continuer d'apprendre.`;
                 speak(failMessage, 0.1);
 
-                // L'élève a échoué. On envoie immédiatement sa note actuelle arrêtée à ce niveau sur 16 points.
+                // On enregistre les points actuels cumulés à chaque fin de niveau
                 envoyerNoteA_Excel(studentName, prefix, totalExamScore);
             }
 
@@ -712,15 +722,12 @@
             stopVisualEffects();
             stopAllMusic();
             window.speechSynthesis.cancel();
-            const isWin = score === LEVELS[currentLevel].length;
-            if (isWin) {
-                if (currentLevel < 3) {
-                    startLevel(currentLevel + 1);
-                } else {
-                    goHome();
-                }
+            
+            // On passe systématiquement au niveau suivant s'il existe
+            if (currentLevel < 3) {
+                startLevel(currentLevel + 1);
             } else {
-                startLevel(currentLevel);
+                goHome();
             }
         }
 
@@ -728,7 +735,7 @@
             stopVisualEffects();
             stopAllMusic();
             window.speechSynthesis.cancel();
-            // On enlève le score obtenu précédemment pour ce niveau lors de la reprise
+            // On soustrait le score fait lors de ce niveau avant de le recommencer pour éviter de tricher sur le cumul
             totalExamScore = Math.max(0, totalExamScore - score); 
             startLevel(currentLevel);
         }
@@ -786,9 +793,7 @@
 
         // --- ENVOI AUTOMATIQUE DES NOTES VERS GOOGLE SHEETS VIA SHEETDB ---
         function envoyerNoteA_Excel(nomEleve, civiliteEleve, scoreEleve) {
-            // Configuration automatique avec votre lien SheetDB personnel :
             const apiURL = "https://sheetdb.io/api/v1/8jutgab6bhp94"; 
-            
             const dateAujourdhui = new Date().toLocaleString("fr-FR");
 
             const donnees = {
@@ -796,7 +801,7 @@
                     {
                         nom: nomEleve,
                         civilite: civiliteEleve,
-                        score: scoreEleve + " / 16", // Note finale cumulée sur l'ensemble des questions
+                        score: scoreEleve + " / 16",
                         date: dateAujourdhui
                     }
                 ]
