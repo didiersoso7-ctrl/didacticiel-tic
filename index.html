@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Didacticiel TIC - Level System Expert</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&display=swap');
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+            transition: background-color 0.8s ease;
+        }
+        /* Style de scrollbar moderne et discret */
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: #0b0f19; }
+        ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
+        
+        /* CHUTE DE FLEURS REELLES (EN ARRIÈRE-PLAN : z-index: 5) */
+        @keyframes fallFlower {
+            0% {
+                transform: translateY(-20vh) rotate(0deg) scale(0.5);
+                opacity: 0;
+            }
+            15% { opacity: 1; }
+            90% { opacity: 1; }
+            100% {
+                transform: translateY(115vh) rotate(360deg) scale(1.1);
+                opacity: 0;
+            }
+        }
+
+        .flower-item {
+            position: absolute;
+            top: 0;
+            pointer-events: none;
+            z-index: 5;
+            animation: fallFlower 7s linear infinite;
+        }
+
+        /* EFFET PLUIE POUR L'ÉCHEC (EN ARRIÈRE-PLAN) */
+        @keyframes fallRain {
+            0% {
+                transform: translateY(-10vh) translateX(0);
+                opacity: 0.2;
+            }
+            100% {
+                transform: translateY(110vh) translateX(-10px);
+                opacity: 0.8;
+            }
+        }
+
+        .rain-drop {
+            position: absolute;
+            background: linear-gradient(transparent, #38bdf8);
+            width: 1.5px;
+            height: 35px;
+            opacity: 0.7;
+            z-index: 5;
+            pointer-events: none;
+            animation: fallRain 1.2s linear infinite;
+        }
+
+        /* Tremblement d'écran en cas d'échec */
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-4px); }
+            20%, 40%, 60%, 80% { transform: translateX(4px); }
+        }
+        .shake-element {
+            animation: shake 0.4s ease-in-out;
+        }
+    </style>
+</head>
+<body class="bg-[#070b13] text-slate-100 min-h-screen flex items-center justify-center p-3 relative overflow-hidden">
+
+    <div id="visual-effects-container" class="absolute inset-0 pointer-events-none overflow-hidden z-0"></div>
+
+    <div id="main-card" class="max-w-lg w-full bg-[#0d1321]/95 backdrop-blur-md p-5 sm:p-6 rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.7)] border border-slate-800 transition-all duration-700 relative z-20">
+        
+        <div id="login-screen" class="text-center py-4">
+            <div class="inline-block bg-blue-500/10 text-blue-400 border border-blue-500/20 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider mb-3">
+                🏫 Enregistrement Élève
+            </div>
+            <h1 class="text-2xl sm:text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-400 mb-2">
+                Bienvenue au Didacticiel
+            </h1>
+            <p class="text-slate-400 text-xs mb-6">Veuillez renseigner vos informations pour commencer.</p>
+            
+            <div class="space-y-4 text-left mb-6">
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Votre Nom complet :</label>
+                    <input type="text" id="user-name-input" placeholder="Ex: Didier" class="w-full bg-slate-900/60 border border-slate-700/60 focus:border-blue-500 rounded-xl px-4 py-3 text-sm text-slate-100 placeholder-slate-500 focus:outline-none transition duration-200">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Sélectionnez votre civilité pour démarrer :</label>
+                    <div class="grid grid-cols-2 gap-3">
+                        <button type="button" onclick="selectGenderAndSubmit('M')" class="border border-slate-700/60 bg-slate-900/40 hover:bg-slate-800 hover:text-white text-xs font-semibold py-4 rounded-xl transition duration-150 text-center flex flex-col items-center justify-center gap-1">
+                            <span class="text-xl">👨</span>
+                            <span>Monsieur</span>
+                        </button>
+                        <button type="button" onclick="selectGenderAndSubmit('F')" class="border border-slate-700/60 bg-slate-900/40 hover:bg-pink-905/30 hover:text-white text-xs font-semibold py-4 rounded-xl transition duration-150 text-center flex flex-col items-center justify-center gap-1">
+                            <span class="text-xl">👩</span>
+                            <span>Mademoiselle</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="home-screen" class="hidden text-center py-2">
+            <div class="inline-block bg-blue-500/10 text-blue-400 border border-blue-500/20 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider mb-3">
+                🎮 Mode Campagne TIC
+            </div>
+            <h1 class="text-xl sm:text-2xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-500 mb-1">
+                Didacticiel TIC
+            </h1>
+            
+            <p id="welcome-message" class="text-slate-300 text-xs mb-3 font-semibold">Bonjour, élève !</p>
+
+            <div class="bg-indigo-950/40 border border-indigo-500/30 rounded-xl p-2.5 mb-5 text-center">
+                <p class="text-[11px] text-indigo-300 font-medium">
+                    ℹ️ Ce didacticiel a été conçu pour tester le niveau des apprenants de <strong class="text-white">7ème année</strong>.
+                </p>
+            </div>
+            
+            <div class="grid grid-cols-3 gap-2.5 mb-6 text-left">
+                <div id="status-l1" onclick="startLevel(1)" class="bg-blue-950/20 border border-blue-500/30 p-3 rounded-xl cursor-pointer hover:scale-[1.02] transition-all duration-200">
+                    <span class="block text-[10px] text-blue-400 font-bold">LEVEL 1</span>
+                    <span class="block text-xs font-bold text-slate-200">Facile</span>
+                    <span class="text-[9px] text-slate-400">4 Q (4/4 requis)</span>
+                </div>
+                <div id="status-l2" class="bg-slate-900/10 border border-slate-800/30 p-3 rounded-xl opacity-40 transition-all duration-200">
+                    <span class="block text-[10px] text-purple-400 font-bold">LEVEL 2</span>
+                    <span class="block text-xs font-bold text-slate-400">Moyen 🔒</span>
+                    <span class="text-[9px] text-slate-500">5 Q (5/5 requis)</span>
+                </div>
+                <div id="status-l3" class="bg-slate-900/10 border border-slate-800/30 p-3 rounded-xl opacity-40 transition-all duration-200">
+                    <span class="block text-[10px] text-rose-400 font-bold">LEVEL 3</span>
+                    <span class="block text-xs font-bold text-slate-400">Difficile 🔒</span>
+                    <span class="text-[9px] text-slate-500">7 Q</span>
+                </div>
+            </div>
+
+            <button id="start-btn" onclick="startLevel(1)" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-xl text-sm transition-all duration-300 shadow-md">
+                Lancer le Level 1 ➔
+            </button>
+        </div>
+
+        <div id="quiz-screen" class="hidden">
+            <div class="flex justify-between items-center mb-3">
+                <span id="level-badge" class="px-2.5 py-0.5 rounded-full text-[10px] font-bold transition-all duration-300">LEVEL 1</span>
+                <span id="question-counter" class="font-bold text-xs transition-all duration-300">Question 1/4</span>
+            </div>
+            
+            <div class="w-full bg-slate-900 rounded-full h-1.5 mb-5 border border-slate-800/60 overflow-hidden">
+                <div id="progress-bar" class="h-full rounded-full transition-all duration-300" style="width: 0%"></div>
+            </div>
+
+            <h2 id="question-text" class="text-sm sm:text-base font-bold mb-4 text-slate-100 bg-slate-900/30 p-4 rounded-xl border-l-4 transition-all duration-300 leading-snug">
+                Chargement...
+            </h2>
+
+            <div id="options-container" class="space-y-2.5 mb-5"></div>
+
+            <button id="next-btn" onclick="submitAnswer()" disabled class="w-full font-bold py-3 rounded-xl text-xs sm:text-sm transition-all duration-300">
+                Sélectionnez une réponse
+            </button>
+        </div>
+
+        <div id="result-screen" class="hidden text-center py-2">
+            <div id="result-icon" class="text-5xl mb-2 transition-transform duration-500 hover:scale-125">🎉</div>
+            <h1 id="result-title" class="text-xl sm:text-2xl font-extrabold mb-1">Niveau Complété !</h1>
+            
+            <p id="student-salutation" class="text-yellow-400 font-bold text-sm mb-1"></p>
+            <p id="result-subtitle" class="text-slate-400 text-xs mb-3">Votre score pour ce niveau</p>
+            
+            <div class="mb-3">
+                <span id="final-score" class="text-5xl font-extrabold">0 / 0</span>
+            </div>
+
+            <p id="result-status" class="text-sm font-semibold mb-4">Statut...</p>
+
+            <div class="text-left bg-slate-950/80 rounded-xl p-3.5 border border-slate-800/80 max-h-40 overflow-y-auto mb-5 space-y-3">
+                <h3 id="correction-title" class="text-[10px] font-bold uppercase tracking-wider border-b border-slate-800/60 pb-1.5 mb-2">Correction :</h3>
+                <div id="correction-list" class="space-y-3 text-xs"></div>
+            </div>
+
+            <div class="flex flex-col gap-2 sm:flex-row">
+                <button onclick="goHome()" class="flex-1 bg-slate-800/80 hover:bg-slate-700 text-slate-200 font-bold py-3 rounded-xl text-xs transition duration-150">
+                    🏠 Menu Principal
+                </button>
+                <button id="retry-btn" onclick="retryCurrentLevel()" class="flex-1 bg-slate-900 hover:bg-slate-850 text-slate-300 font-bold py-3 rounded-xl text-xs border border-slate-850 transition duration-150">
+                    🔄 Recommencer
+                </button>
+                <button id="action-btn" onclick="nextAction()" class="flex-1 text-white font-bold py-3 rounded-xl text-xs transition duration-150 shadow-md">
+                    Continuer
+                </button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // --- PROFIL ÉLÈVE ---
+        let studentName = "";
+        let studentGender = ""; // "M" ou "F"
+
+        // Soumission automatique lors du choix du genre
+        function selectGenderAndSubmit(gender) {
+            const nameInput = document.getElementById("user-name-input").value.trim();
+            if (!nameInput) {
+                alert("Veuillez d'abord entrer votre nom avant de sélectionner votre civilité.");
+                return;
+            }
+
+            studentName = nameInput;
+            studentGender = gender;
+            
+            // Masquer l'écran d'enregistrement et afficher l'accueil
+            document.getElementById("login-screen").classList.add("hidden");
+            document.getElementById("home-screen").classList.remove("hidden");
+            
+            const prefix = studentGender === 'M' ? "Monsieur" : "Mademoiselle";
+            document.getElementById("welcome-message").innerText = `Bonjour ${prefix} ${studentName}, prêt à relever le défi ?`;
+            
+            // Débloquer l'audio
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+
+            // Première salutation à la voix
+            speak(`Bonjour ${prefix} ${studentName}, bienvenue dans votre didacticiel de T I C conçu pour la septième année !`, 0.01);
+        }
+
+        // --- SYNTHÈSE VOCALE PERSONNALISÉE (Web Speech API) ---
+        function speak(text, musicVolumeToSet = 0.01) {
+            window.speechSynthesis.cancel();
+
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'fr-FR';
+            utterance.rate = 1.0;
+            utterance.pitch = 1.0;
+
+            // Baisse de la musique de fond pendant que la voix parle
+            setAllMusicVolume(musicVolumeToSet);
+
+            // Rétablir le volume normal à la fin
+            utterance.onend = function() {
+                resetAllMusicVolume();
+            };
+
+            window.speechSynthesis.speak(utterance);
+        }
+
+        // --- BASE DE DONNÉES PAR NIVEAUX ---
+        const LEVELS = {
+            1: [
+                { q: "Qu'est-ce que l'informatique ?", options: { a: "L'art de dessiner avec des crayons", b: "La science du traitement automatique de l'information avec un ordinateur", c: "Le nettoyage des écrans", d: "La réparation mécanique des voitures" }, correct: "b" },
+                { q: "De quels mots vient le mot « Informatique » ?", options: { a: "Information et Théorie", b: "Ordinateur et Automatique", c: "Information et Automatique", d: "Écran et Souris" }, correct: "c" },
+                { q: "Qui a inventé le mot « Informatique » en 1962 ?", options: { a: "Steve Jobs", b: "Charles Babbage", c: "Philippe Dreyfus", d: "Jacques Perret" }, correct: "c" },
+                { q: "Qui a inventé le mot « Ordinateur » en 1955 ?", options: { a: "Philippe Dreyfus", b: "Jacques Perret", c: "Alan Turing", d: "Blaise Pascal" }, correct: "b" }
+            ],
+            2: [
+                { q: "Le mot latin « ordo-ordinis » qui a formé le mot ordinateur signifie :", options: { a: "Machine à calculer", b: "Ordre, arrangement, instruction", c: "Électricité", d: "Dessin" }, correct: "b" },
+                { q: "Parmi ces périphériques, lequel est un périphérique d'ENTRÉE ?", options: { a: "L'imprimante", b: "Le scanner (numériseur)", c: "L'écran simple", d: "Les haut-parleurs" }, correct: "b" },
+                { q: "Quel périphérique est un périphérique de SORTIE ?", options: { a: "Le clavier", b: "Le microphone", c: "Le vidéoprojecteur", d: "Le scanner" }, correct: "c" },
+                { q: "Quelle touche supprime un caractère situé à GAUCHE du curseur ?", options: { a: "Suppr (Delete)", b: "Retour arrière (Backspace)", c: "La barre d'espace", d: "Entrée" }, correct: "b" },
+                { q: "Quel périphérique permet à la fois d'envoyer et de recevoir des informations (MIXTE) ?", options: { a: "Le clavier", b: "La souris", c: "L'écran tactile", d: "L'imprimante classique" }, correct: "c" }
+            ],
+            3: [
+                { q: "Quel type de réseau est limité à une zone géographique restreinte (école, maison) ?", options: { a: "Réseau WAN", b: "Réseau LAN (Réseau local)", c: "Réseau mondial", d: "Le Cloud" }, correct: "b" },
+                { q: "Qu'est-ce qu'un antivirus ?", options: { a: "Un virus plus puissant", b: "Un logiciel qui détecte et détruit les menaces", c: "Un composant physique de la carte mère", d: "Un navigateur web" }, correct: "b" },
+                { q: "Quelle est la définition exacte du mot informatique adoptée par l'Académie Française en 1966 ?", options: { a: "Science de la programmation de jeux vidéo", b: "Science de traitement rationnel et automatique de l'information", c: "Art d'écrire des textes sur ordinateur", d: "Technique de raccordement des câbles" }, correct: "b" },
+                { q: "À quoi sert la touche 'Echap' (Esc) de votre clavier ?", options: { a: "À valider une action", b: "À annuler ou quitter une opération en cours", c: "À faire une capture d'écran", d: "À éteindre l'ordinateur" }, correct: "b" },
+                { q: "Quel est le rôle du système d'exploitation (ex: Windows, Android) ?", options: { a: "Protéger l'ordinateur de la poussière", b: "Gérer et faire fonctionner le matériel et les applications", c: "Créer des tableaux de calculs", d: "Naviguer sur le web uniquement" }, correct: "b" },
+                { q: "Le terme anglais 'Computer science' fait référence à :", options: { a: "L'informatique", b: "L'imprimante", c: "La calculatrice", d: "La physique" }, correct: "a" },
+                { q: "Quelle combinaison de touches permet de copier un élément sélectionné sous Windows ?", options: { a: "Ctrl + V", b: "Ctrl + C", c: "Ctrl + X", d: "Alt + F4" }, correct: "b" }
+            ]
+        };
+
+        const LEVEL_THEMES = {
+            1: { primary: "rgb(59, 130, 246)", bg: "#060b18", border: "rgba(59, 130, 246, 0.3)", glow: "rgba(59, 130, 246, 0.2)", text: "text-blue-400", badge: "bg-blue-500/20 text-blue-300 border-blue-500/30", bar: "bg-gradient-to-r from-blue-500 to-cyan-500", button: "bg-blue-600 hover:bg-blue-500" },
+            2: { primary: "rgb(147, 51, 234)", bg: "#0f071e", border: "rgba(147, 51, 234, 0.3)", glow: "rgba(147, 51, 234, 0.2)", text: "text-purple-400", badge: "bg-purple-500/20 text-purple-300 border-purple-500/30", bar: "bg-gradient-to-r from-purple-500 to-pink-500", button: "bg-purple-600 hover:bg-purple-500" },
+            3: { primary: "rgb(244, 63, 94)", bg: "#16050b", border: "rgba(244, 63, 94, 0.3)", glow: "rgba(244, 63, 94, 0.2)", text: "text-rose-400", badge: "bg-rose-500/20 text-rose-300 border-rose-500/30", bar: "bg-gradient-to-r from-rose-500 to-orange-500", button: "bg-rose-600 hover:bg-rose-500" }
+        };
+
+        // --- ENREGISTREMENT DE VOS VRAIS FICHIERS IMAGES REÇUS ---
+        const REAL_FLOWERS = [
+            "fleur1.png",
+            "fleur2.png",
+            "fleur3.png"
+        ];
+
+        // --- GÉNÉRATEUR AUDIO (BOUCLES INFINIES EN CONTIRE) ---
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        let backgroundMusicNode = null;
+        let successMusicNode = null;
+        let failMusicNode = null;
+        
+        let activeInstruments = [];
+
+        function triggerSynthNote(freq, type, volume, duration, delay = 0) {
+            const osc = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            
+            osc.type = type;
+            osc.frequency.setValueAtTime(freq, audioCtx.currentTime + delay);
+            
+            gainNode.gain.setValueAtTime(volume, audioCtx.currentTime + delay);
+            gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + delay + duration - 0.02);
+            
+            osc.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            
+            osc.start(audioCtx.currentTime + delay);
+            osc.stop(audioCtx.currentTime + delay + duration);
+
+            activeInstruments.push({ gainNode, originalVolume: volume, duration, startTime: audioCtx.currentTime + delay });
+        }
+
+        function setAllMusicVolume(factor) {
+            activeInstruments.forEach(inst => {
+                if (audioCtx.currentTime < inst.startTime + inst.duration) {
+                    inst.gainNode.gain.setValueAtTime(inst.originalVolume * factor, audioCtx.currentTime);
+                }
+            });
+        }
+
+        function resetAllMusicVolume() {
+            activeInstruments.forEach(inst => {
+                if (audioCtx.currentTime < inst.startTime + inst.duration) {
+                    inst.gainNode.gain.setValueAtTime(inst.originalVolume, audioCtx.currentTime);
+                }
+            });
+        }
+
+        // Musique en boucle infinie
+        function playCombinedMusicLoop(patterns, tempo) {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+
+            let beatIndex = 0;
+            
+            function runBeat() {
+                activeInstruments = activeInstruments.filter(inst => audioCtx.currentTime < inst.startTime + inst.duration);
+
+                patterns.forEach(instrument => {
+                    const currentNote = instrument.notes[beatIndex % instrument.notes.length];
+                    
+                    if (Array.isArray(currentNote)) {
+                        currentNote.forEach(freq => {
+                            if (freq > 0) {
+                                triggerSynthNote(freq, instrument.type, instrument.volume, tempo);
+                            }
+                        });
+                    } else if (currentNote > 0) {
+                        triggerSynthNote(currentNote, instrument.type, instrument.volume, tempo);
+                    }
+                });
+                beatIndex++;
+            }
+
+            runBeat(); // Joue instantanément
+            const interval = setInterval(runBeat, tempo * 1000);
+
+            return {
+                stop: () => clearInterval(interval)
+            };
+        }
+
+        function playInGameMusic() {
+            stopAllMusic();
+            const patterns = [
+                {
+                    type: "sine",
+                    volume: 0.08,
+                    notes: [261.63, 0, 293.66, 329.63, 0, 392.00, 349.23, 0, 329.63, 293.66, 0, 261.63]
+                },
+                {
+                    type: "triangle",
+                    volume: 0.05,
+                    notes: [130.81, 130.81, 146.83, 164.81, 164.81, 196.00, 174.61, 174.61, 164.81, 146.83, 146.83, 130.81]
+                }
+            ];
+            backgroundMusicNode = playCombinedMusicLoop(patterns, 0.45);
+        }
+
+        function playVictoryMusic() {
+            stopAllMusic();
+            const patterns = [
+                {
+                    type: "triangle",
+                    volume: 0.07,
+                    notes: [523.25, 659.25, 783.99, 1046.50, 0, 783.99, 1046.50, 1318.51, 0, 1046.50]
+                },
+                {
+                    type: "sine",
+                    volume: 0.07,
+                    notes: [
+                        [261.63, 329.63, 392.00], 
+                        [329.63, 392.00, 523.25], 
+                        [349.23, 440.00, 523.25], 
+                        [392.00, 493.88, 587.33], 
+                        0,
+                        [261.63, 329.63, 392.00],
+                        [349.23, 440.00, 523.25],
+                        [392.00, 493.88, 587.33],
+                        0,
+                        [523.25, 659.25, 783.99]
+                    ]
+                }
+            ];
+            successMusicNode = playCombinedMusicLoop(patterns, 0.28);
+        }
+
+        function playFailureMusic() {
+            stopAllMusic();
+            const patterns = [
+                {
+                    type: "sine",
+                    volume: 0.09,
+                    notes: [146.83, 138.59, 130.81, 0, 110.00, 98.00, 0, 82.41, 0]
+                },
+                {
+                    type: "sawtooth",
+                    volume: 0.015,
+                    notes: [
+                        [110.00, 130.81, 164.81], 
+                        [110.00, 130.81, 164.81],
+                        [98.00, 116.54, 146.83],  
+                        0,
+                        [87.31, 103.83, 130.81],  
+                        [73.42, 87.31, 110.00],   
+                        0,
+                        [82.41, 103.83, 123.47],  
+                        0
+                    ]
+                }
+            ];
+            failMusicNode = playCombinedMusicLoop(patterns, 0.55);
+        }
+
+        function stopAllMusic() {
+            if (backgroundMusicNode) { backgroundMusicNode.stop(); backgroundMusicNode = null; }
+            if (successMusicNode) { successMusicNode.stop(); successMusicNode = null; }
+            if (failMusicNode) { failMusicNode.stop(); failMusicNode = null; }
+            activeInstruments = [];
+        }
+
+        // --- EFFETS VISUELS ---
+        let visualEffectsInterval = null;
+
+        function startVictoryFlowers() {
+            stopVisualEffects();
+            const container = document.getElementById("visual-effects-container");
+
+            visualEffectsInterval = setInterval(() => {
+                const img = document.createElement("img");
+                img.className = "flower-item";
+                
+                // Utilisation exclusive des fichiers réels reçus
+                img.src = REAL_FLOWERS[Math.floor(Math.random() * REAL_FLOWERS.length)];
+                
+                img.style.left = (Math.random() * 85) + "vw";
+                const size = Math.random() * 70 + 90; // Taille imposante et bien visible des fleurs
+                img.style.width = size + "px";
+                img.style.height = "auto";
+                img.style.animationDuration = (Math.random() * 2.5 + 4.5) + "s";
+
+                container.appendChild(img);
+                
+                setTimeout(() => img.remove(), 7500);
+            }, 350);
+        }
+
+        function startFailureRain() {
+            stopVisualEffects();
+            const container = document.getElementById("visual-effects-container");
+
+            visualEffectsInterval = setInterval(() => {
+                const drop = document.createElement("div");
+                drop.className = "rain-drop";
+                drop.style.left = Math.random() * 100 + "vw";
+                drop.style.animationDuration = (Math.random() * 0.5 + 0.8) + "s";
+                container.appendChild(drop);
+
+                setTimeout(() => drop.remove(), 2000);
+            }, 30);
+        }
+
+        function stopVisualEffects() {
+            clearInterval(visualEffectsInterval);
+            document.getElementById("visual-effects-container").innerHTML = "";
+        }
+
+        // --- LOGIQUE DE JEU ---
+        let currentLevel = 1;
+        let unlockedLevels = [1];
+        let currentIndex = 0;
+        let score = 0;
+        let userAnswers = [];
+        let selectedKey = null;
+
+        function applyTheme(level) {
+            const theme = LEVEL_THEMES[level];
+            document.body.style.backgroundColor = theme.bg;
+            
+            const card = document.getElementById("main-card");
+            card.style.borderColor = theme.primary;
+            card.style.boxShadow = `0 0 35px ${theme.glow}`;
+
+            const levelBadge = document.getElementById("level-badge");
+            levelBadge.className = `px-2.5 py-0.5 rounded-full text-[10px] font-bold transition-all duration-300 ${theme.badge}`;
+            levelBadge.innerText = `LEVEL ${level}`;
+
+            const qCounter = document.getElementById("question-counter");
+            qCounter.className = `font-bold text-xs transition-all duration-300 ${theme.text}`;
+
+            const qText = document.getElementById("question-text");
+            qText.style.borderLeftColor = theme.primary;
+
+            const progressBar = document.getElementById("progress-bar");
+            progressBar.className = `h-full rounded-full transition-all duration-300 ${theme.bar}`;
+        }
+
+        function startLevel(lvl) {
+            if (!unlockedLevels.includes(lvl)) return;
+            stopVisualEffects();
+            stopAllMusic();
+
+            currentLevel = lvl;
+            currentIndex = 0;
+            score = 0;
+            userAnswers = [];
+            selectedKey = null;
+
+            applyTheme(currentLevel);
+
+            document.getElementById("home-screen").classList.add("hidden");
+            document.getElementById("result-screen").classList.add("hidden");
+            document.getElementById("quiz-screen").classList.remove("hidden");
+            
+            playInGameMusic();
+            loadQuestion();
+        }
+
+        function loadQuestion() {
+            selectedKey = null;
+            const currentQ = LEVELS[currentLevel][currentIndex];
+            const totalQ = LEVELS[currentLevel].length;
+            
+            document.getElementById("question-counter").innerText = `Question ${currentIndex + 1}/${totalQ}`;
+            const progress = Math.round((currentIndex / totalQ) * 100);
+            document.getElementById("progress-bar").style.width = `${progress}%`;
+            
+            document.getElementById("question-text").innerText = currentQ.q;
+            
+            const container = document.getElementById("options-container");
+            container.innerHTML = "";
+
+            const nextBtn = document.getElementById("next-btn");
+            nextBtn.disabled = true;
+            nextBtn.className = "w-full bg-slate-800 text-slate-500 cursor-not-allowed font-bold py-3 rounded-xl text-xs sm:text-sm transition-all duration-300";
+            nextBtn.innerText = "Sélectionnez une réponse";
+
+            for (const [key, value] of Object.entries(currentQ.options)) {
+                const btn = document.createElement("button");
+                btn.className = "option-btn w-full flex items-center p-3 bg-slate-900/40 hover:bg-slate-800/40 rounded-xl cursor-pointer border border-slate-800/80 transition-all duration-150 text-left";
+                btn.onclick = () => selectOption(key, btn);
+                btn.innerHTML = `
+                    <span class="w-4 h-4 rounded-full border-2 border-slate-600 flex items-center justify-center mr-3 flex-shrink-0 option-radio"></span>
+                    <span class="text-slate-300 text-xs sm:text-sm font-medium"><strong class="mr-1 text-slate-400 font-bold">${key.toUpperCase()})</strong> ${value}</span>
+                `;
+                container.appendChild(btn);
+            }
+        }
+
+        function selectOption(key, element) {
+            selectedKey = key;
+            const theme = LEVEL_THEMES[currentLevel];
+            const allButtons = document.querySelectorAll(".option-btn");
+
+            allButtons.forEach(btn => {
+                btn.style.borderColor = "transparent";
+                btn.classList.remove("bg-slate-800/60");
+                const radio = btn.querySelector(".option-radio");
+                radio.style.backgroundColor = "transparent";
+                radio.style.borderColor = "#475569";
+                radio.innerHTML = "";
+            });
+
+            element.style.borderColor = theme.primary;
+            element.classList.add("bg-slate-800/60");
+            
+            const radio = element.querySelector(".option-radio");
+            radio.style.borderColor = theme.primary;
+            radio.style.backgroundColor = theme.primary;
+            radio.innerHTML = `<span class="w-1 h-1 rounded-full bg-white"></span>`;
+
+            const nextBtn = document.getElementById("next-btn");
+            nextBtn.disabled = false;
+            nextBtn.className = `w-full text-white font-bold py-3 rounded-xl text-xs sm:text-sm transition-all duration-300 shadow-md cursor-pointer ${theme.button}`;
+            nextBtn.innerText = "Valider & Continuer ➔";
+        }
+
+        function submitAnswer() {
+            if (!selectedKey) return;
+            userAnswers.push(selectedKey);
+            if (selectedKey === LEVELS[currentLevel][currentIndex].correct) {
+                score++;
+            }
+            currentIndex++;
+            if (currentIndex < LEVELS[currentLevel].length) {
+                loadQuestion();
+            } else {
+                showResults();
+            }
+        }
+
+        function showResults() {
+            document.getElementById("quiz-screen").classList.add("hidden");
+            const resultScreen = document.getElementById("result-screen");
+            resultScreen.classList.remove("hidden");
+
+            const totalQ = LEVELS[currentLevel].length;
+            const isWin = score === totalQ;
+            const theme = LEVEL_THEMES[currentLevel];
+
+            const prefix = studentGender === 'M' ? "Monsieur" : "Mademoiselle";
+            const salutationEl = document.getElementById("student-salutation");
+            salutationEl.innerText = `${prefix} ${studentName},`;
+
+            document.getElementById("final-score").innerText = `${score} / ${totalQ}`;
+            
+            const titleEl = document.getElementById("result-title");
+            const statusEl = document.getElementById("result-status");
+            const iconEl = document.getElementById("result-icon");
+            const actionBtn = document.getElementById("action-btn");
+            const card = document.getElementById("main-card");
+
+            card.classList.remove("shake-element");
+
+            if (isWin) {
+                playVictoryMusic(); // Lancé en boucle continue !
+                startVictoryFlowers();
+
+                titleEl.className = "text-xl sm:text-2xl font-extrabold text-emerald-400 mb-1";
+                statusEl.className = "text-sm font-semibold text-emerald-400 mb-4";
+                actionBtn.className = `flex-1 text-white font-bold py-3 rounded-xl text-xs transition duration-150 shadow-md ${theme.button}`;
+
+                let spokenMessage = "";
+                if (currentLevel < 3) {
+                    iconEl.innerText = "👑";
+                    titleEl.innerText = `Niveau ${currentLevel} Complété !`;
+                    statusEl.innerText = "Parfait ! Vous avez débloqué le niveau suivant avec brio !";
+                    actionBtn.innerText = "Lancer le Level " + (currentLevel + 1) + " ➔";
+                    if (!unlockedLevels.includes(currentLevel + 1)) unlockedLevels.push(currentLevel + 1);
+
+                    spokenMessage = `Félicitations, ${prefix} ${studentName} ! Vous avez brillamment réussi le niveau ${currentLevel} de notre didacticiel ! Toutes nos fleurs sont pour vous !`;
+                } else {
+                    iconEl.innerText = "🏆";
+                    titleEl.innerText = "Maître Suprême des TIC !";
+                    statusEl.innerText = "Excellent travail ! Vous avez brillamment complété tous les niveaux !";
+                    actionBtn.innerText = "🏠 Revenir à l'accueil";
+
+                    spokenMessage = `Merveilleux ! Toutes nos félicitations ${prefix} ${studentName} ! Vous venez de réussir tous les niveaux avec succès et devenez officiellement un expert en T I C de septième année !`;
+                }
+
+                speak(spokenMessage, 0.1);
+
+            } else {
+                playFailureMusic(); // Lancé en boucle continue !
+                startFailureRain();
+                
+                card.classList.add("shake-element");
+
+                iconEl.innerText = "❌";
+                titleEl.className = "text-xl sm:text-2xl font-extrabold text-red-500 mb-1";
+                titleEl.innerText = "Niveau Échoué !";
+                statusEl.className = "text-sm font-semibold text-red-400 mb-4";
+                statusEl.innerText = "Ne vous découragez pas. Obtenez un sans-faute pour débloquer le niveau suivant.";
+                
+                actionBtn.className = "flex-1 bg-red-600 hover:bg-red-500 text-white font-bold py-3 rounded-xl text-xs transition duration-150 shadow-md";
+                actionBtn.innerText = "🔄 Réessayer le niveau";
+
+                const failMessage = `Oh dommage, ${prefix} ${studentName}. Ne vous découragez pas. Reprenez le niveau tranquillement pour obtenir votre sans-faute.`;
+                speak(failMessage, 0.1);
+            }
+
+            // Correction détaillée
+            document.getElementById("correction-title").className = `text-[10px] font-bold uppercase tracking-wider border-b border-slate-800/60 pb-1.5 mb-2 ${theme.text}`;
+            const correctionContainer = document.getElementById("correction-list");
+            correctionContainer.innerHTML = "";
+            LEVELS[currentLevel].forEach((q, idx) => {
+                const uAns = userAnswers[idx];
+                const isCorrect = uAns === q.correct;
+                const item = document.createElement("div");
+                item.className = "border-b border-slate-900 pb-2 last:border-0";
+                item.innerHTML = `
+                    <p class="font-semibold text-slate-300">Q${idx+1}: ${q.q}</p>
+                    <p class="text-[11px] mt-0.5">Votre réponse : <span class="${isCorrect ? 'text-emerald-400' : 'text-red-400'} font-bold">${uAns.toUpperCase()}) ${q.options[uAns]}</span></p>
+                    ${!isCorrect ? `<p class="text-[11px] text-emerald-400 mt-0.5">Bonne réponse : <span class="font-bold">${q.correct.toUpperCase()}) ${q.options[q.correct]}</span></p>` : ''}
+                `;
+                correctionContainer.appendChild(item);
+            });
+
+            updateHomeDashboard();
+        }
+
+        function nextAction() {
+            stopVisualEffects();
+            stopAllMusic();
+            window.speechSynthesis.cancel();
+            const isWin = score === LEVELS[currentLevel].length;
+            if (isWin) {
+                if (currentLevel < 3) {
+                    startLevel(currentLevel + 1);
+                } else {
+                    goHome();
+                }
+            } else {
+                startLevel(currentLevel);
+            }
+        }
+
+        function retryCurrentLevel() {
+            stopVisualEffects();
+            stopAllMusic();
+            window.speechSynthesis.cancel();
+            startLevel(currentLevel);
+        }
+
+        function goHome() {
+            stopVisualEffects();
+            stopAllMusic();
+            window.speechSynthesis.cancel();
+            document.body.style.backgroundColor = "#070b13";
+            document.getElementById("main-card").style.borderColor = "rgba(30, 41, 59, 0.5)";
+            document.getElementById("main-card").style.boxShadow = "0 0 40px rgba(0,0,0,0.6)";
+            document.getElementById("result-screen").classList.add("hidden");
+            document.getElementById("home-screen").classList.remove("hidden");
+            updateHomeDashboard();
+        }
+
+        function updateHomeDashboard() {
+            const names = ["", "Facile", "Moyen", "Difficile"];
+            const colors = ["", "blue-400", "purple-400", "rose-400"];
+            const prefix = studentGender === 'M' ? "Monsieur" : "Mademoiselle";
+            
+            document.getElementById("welcome-message").innerText = `Bonjour ${prefix} ${studentName}, prêt à relever le défi ?`;
+
+            for (let i = 1; i <= 3; i++) {
+                const badge = document.getElementById(`status-l${i}`);
+                if (unlockedLevels.includes(i)) {
+                    badge.style.opacity = "1";
+                    
+                    if (i === 1) {
+                        badge.className = "bg-blue-950/20 border border-blue-500/40 p-3 rounded-xl cursor-pointer hover:scale-[1.02] transition-all duration-200";
+                    } else if (i === 2) {
+                        badge.className = "bg-purple-950/20 border border-purple-500/40 p-3 rounded-xl cursor-pointer hover:scale-[1.02] transition-all duration-200";
+                    } else if (i === 3) {
+                        badge.className = "bg-rose-950/20 border border-rose-500/40 p-3 rounded-xl cursor-pointer hover:scale-[1.02] transition-all duration-200";
+                    }
+                    
+                    badge.innerHTML = `
+                        <span class="block text-[10px] text-${colors[i]} font-bold">LEVEL ${i}</span>
+                        <span class="block text-xs font-bold text-slate-100">${names[i]} 🔓</span>
+                        <span class="text-[9px] text-slate-400">${LEVELS[i].length} Questions</span>
+                    `;
+                    badge.onclick = () => startLevel(i);
+                } else {
+                    badge.style.opacity = "0.4";
+                    badge.className = "bg-slate-900/10 border border-slate-800/30 p-3 rounded-xl transition-all duration-200";
+                    badge.innerHTML = `
+                        <span class="block text-[10px] text-slate-500 font-bold">LEVEL ${i}</span>
+                        <span class="block text-xs font-bold text-slate-500">${names[i]} 🔒</span>
+                        <span class="text-[9px] text-slate-500">${LEVELS[i].length} Q</span>
+                    `;
+                    badge.onclick = null;
+                }
+            }
+        }
+    </script>
+</body>
+</html>
