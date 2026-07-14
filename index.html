@@ -194,7 +194,7 @@
                     🔄 Recommencer
                 </button>
                 <button id="action-btn" onclick="nextAction()" class="flex-1 text-white font-bold py-3 rounded-xl text-xs transition duration-150 shadow-md">
-                    Continuer
+                    Passer au Level Suivant
                 </button>
             </div>
         </div>
@@ -269,7 +269,7 @@
             ],
             2: [
                 { q: "Le mot latin « ordo-ordinis » qui a formé le mot ordinateur signifie :", options: { a: "Machine à calculer", b: "Ordre, arrangement, instruction", c: "Électricité", d: "Dessin" }, correct: "b" },
-                { q: "Parmi ces périphériques, lequel est un périphérique d'ENTRÉE ?", options: { a: "L'imprimante", b: "Le scanner (numériseur)", c: "L'écran simple", d: "Les haut-parleurs" }, correct: "b" },
+                { q: "Parmi ces périphériques, lequel est un périphérique d'ENTRÉE ?", options: { a: "L'imprimante", b: "Le scanner (numériseur)", c: "Le écran simple", d: "Les haut-parleurs" }, correct: "b" },
                 { q: "Quel périphérique est un périphérique de SORTIE ?", options: { a: "Le clavier", b: "Le microphone", c: "Le vidéoprojecteur", d: "Le scanner" }, correct: "c" },
                 { q: "Quelle touche supprime un caractère situé à GAUCHE du curseur ?", options: { a: "Suppr (Delete)", b: "Retour arrière (Backspace)", c: "La barre d'espace", d: "Entrée" }, correct: "b" },
                 { q: "Quel périphérique permet à la fois d'envoyer et de recevoir des informations (MIXTE) ?", options: { a: "Le clavier", b: "La souris", c: "L'écran tactile", d: "L'imprimante classique" }, correct: "c" }
@@ -436,6 +436,7 @@
             failMusicNode = playCombinedMusicLoop(patterns, 0.55);
         }
 
+        // --- ENTRAINEMENT DES MUSIQUES ---
         function stopAllMusic() {
             if (backgroundMusicNode) { backgroundMusicNode.stop(); backgroundMusicNode = null; }
             if (successMusicNode) { successMusicNode.stop(); successMusicNode = null; }
@@ -633,7 +634,7 @@
 
             card.classList.remove("shake-element");
 
-            // --- NOUVEAUTÉ : LE NIVEAU SUIVANT SE DÉBLOQUE DANS TOUS LES CAS ! ---
+            // --- DEBLOCAGE AUTOMATIQUE DU NIVEAU SUIVANT DANS TOUS LES CAS ---
             if (currentLevel < 3) {
                 if (!unlockedLevels.includes(currentLevel + 1)) {
                     unlockedLevels.push(currentLevel + 1);
@@ -653,7 +654,7 @@
                     iconEl.innerText = "👑";
                     titleEl.innerText = `Niveau ${currentLevel} Complété !`;
                     statusEl.innerText = "Parfait ! Vous passez au niveau suivant !";
-                    actionBtn.innerText = "Lancer le Level " + (currentLevel + 1) + " ➔";
+                    actionBtn.innerText = "Passer au Level " + (currentLevel + 1) + " ➔";
 
                     spokenMessage = `Félicitations, ${prefix} ${studentName} ! Vous avez brillamment réussi le niveau ${currentLevel} ! Passons maintenant au suivant.`;
                 } else {
@@ -684,7 +685,7 @@
                 if (currentLevel < 3) {
                     statusEl.innerText = "Le niveau suivant a été débloqué pour vous permettre de continuer l'apprentissage !";
                     actionBtn.className = `flex-1 text-white font-bold py-3 rounded-xl text-xs transition duration-150 shadow-md ${theme.button}`;
-                    actionBtn.innerText = "Lancer le Level " + (currentLevel + 1) + " ➔";
+                    actionBtn.innerText = "Passer au Level " + (currentLevel + 1) + " ➔";
                 } else {
                     statusEl.innerText = "Vous êtes arrivé au bout du parcours !";
                     actionBtn.className = "flex-1 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold py-3 rounded-xl text-xs transition duration-150 shadow-md";
@@ -694,7 +695,7 @@
                 const failMessage = `Vous avez fait quelques erreurs, ${prefix} ${studentName}, mais pas de panique ! Nous débloquons le niveau suivant pour vous encourager à continuer d'apprendre.`;
                 speak(failMessage, 0.1);
 
-                // On enregistre les points actuels cumulés à chaque fin de niveau
+                // Enregistrement de la note intermédiaire
                 envoyerNoteA_Excel(studentName, prefix, totalExamScore);
             }
 
