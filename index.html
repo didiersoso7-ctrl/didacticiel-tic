@@ -83,8 +83,7 @@
 
     <div id="visual-effects-container" class="absolute inset-0 pointer-events-none overflow-hidden z-0"></div>
 
-    <!-- Cadre Principal -->
-    <div id="main-card" class="max-w-lg w-full bg-[#0d1321]/95 backdrop-blur-md p-5 sm:p-6 pb-9 sm:pb-10 rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.7)] border border-slate-800 transition-all duration-700 relative z-20">
+    <div id="main-card" class="max-w-lg w-full bg-[#0d1321]/95 backdrop-blur-md p-5 sm:p-6 pb-12 rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.7)] border border-slate-800 transition-all duration-700 relative z-20">
         
         <div id="login-screen" class="text-center py-4">
             <div class="inline-block bg-blue-500/10 text-blue-400 border border-blue-500/20 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider mb-3">
@@ -136,12 +135,12 @@
                 <div id="status-l1" onclick="startLevel(1)" class="bg-blue-950/20 border border-blue-500/30 p-3 rounded-xl cursor-pointer hover:scale-[1.02] transition-all duration-200">
                     <span class="block text-[10px] text-blue-400 font-bold">LEVEL 1</span>
                     <span class="block text-xs font-bold text-slate-200">Facile</span>
-                    <span class="text-[9px] text-slate-400">4 Q</span>
+                    <span class="text-[9px] text-slate-400">4 Q (4/4 requis)</span>
                 </div>
                 <div id="status-l2" class="bg-slate-900/10 border border-slate-800/30 p-3 rounded-xl opacity-40 transition-all duration-200">
                     <span class="block text-[10px] text-purple-400 font-bold">LEVEL 2</span>
                     <span class="block text-xs font-bold text-slate-400">Moyen 🔒</span>
-                    <span class="text-[9px] text-slate-500">5 Q</span>
+                    <span class="text-[9px] text-slate-500">5 Q (5/5 requis)</span>
                 </div>
                 <div id="status-l3" class="bg-slate-900/10 border border-slate-800/30 p-3 rounded-xl opacity-40 transition-all duration-200">
                     <span class="block text-[10px] text-rose-400 font-bold">LEVEL 3</span>
@@ -194,18 +193,20 @@
                 <div id="correction-list" class="space-y-3 text-xs"></div>
             </div>
 
-            <div class="flex flex-col gap-3">
-                <button id="action-btn" onclick="nextAction()" class="w-full text-white font-bold py-3.5 rounded-xl text-xs sm:text-sm transition duration-150 shadow-md">
-                    Passer au Level Suivant
-                </button>
-                <button id="menu-btn" onclick="goHome()" class="hidden w-full bg-slate-800/80 hover:bg-slate-700 text-slate-200 font-bold py-3 rounded-xl text-xs transition duration-150">
+            <div class="flex flex-col gap-2 sm:flex-row">
+                <button onclick="goHome()" class="flex-1 bg-slate-800/80 hover:bg-slate-700 text-slate-200 font-bold py-3 rounded-xl text-xs transition duration-150">
                     🏠 Menu Principal
+                </button>
+                <button id="retry-btn" onclick="retryCurrentLevel()" class="flex-1 bg-slate-900 hover:bg-slate-850 text-slate-300 font-bold py-3 rounded-xl text-xs border border-slate-850 transition duration-150">
+                    🔄 Recommencer
+                </button>
+                <button id="action-btn" onclick="nextAction()" class="flex-1 text-white font-bold py-3 rounded-xl text-xs transition duration-150 shadow-md">
+                    Continuer
                 </button>
             </div>
         </div>
 
-        <!-- Signature du développeur (Toujours visible au coin inférieur droit de la zone) -->
-        <div class="absolute bottom-2 right-4 text-slate-500/70 hover:text-indigo-400 text-sm sm:text-base dev-signature tracking-wide transition-colors duration-300 select-none pointer-events-none">
+        <div class="absolute bottom-2 right-4 text-slate-500/70 hover:text-indigo-400 text-base dev-signature tracking-wide transition-colors duration-300 select-none pointer-events-none z-30">
             Dm's Soft
         </div>
 
@@ -215,7 +216,6 @@
         // --- PROFIL ÉLÈVE ---
         let studentName = "";
         let studentGender = ""; // "M" ou "F"
-        let totalExamScore = 0; // Cumul des scores sur l'ensemble de l'examen (max 16)
 
         // Soumission automatique lors du choix du genre
         function selectGenderAndSubmit(gender) {
@@ -227,7 +227,6 @@
 
             studentName = nameInput;
             studentGender = gender;
-            totalExamScore = 0; // Réinitialiser le score au démarrage
             
             // Masquer l'écran d'enregistrement et afficher l'accueil
             document.getElementById("login-screen").classList.add("hidden");
@@ -265,10 +264,6 @@
             window.speechSynthesis.speak(utterance);
         }
 
-        function resetAllMusicVolume() {
-            setAllMusicVolume(1.0);
-        }
-
         // --- BASE DE DONNÉES PAR NIVEAUX ---
         const LEVELS = {
             1: [
@@ -279,7 +274,7 @@
             ],
             2: [
                 { q: "Le mot latin « ordo-ordinis » qui a formé le mot ordinateur signifie :", options: { a: "Machine à calculer", b: "Ordre, arrangement, instruction", c: "Électricité", d: "Dessin" }, correct: "b" },
-                { q: "Parmi ces périphériques, lequel est un périphérique d'ENTRÉE ?", options: { a: "L'imprimante", b: "Le scanner (numériseur)", c: "Le écran simple", d: "Les haut-parleurs" }, correct: "b" },
+                { q: "Parmi ces périphériques, lequel est un périphérique d'ENTRÉE ?", options: { a: "L'imprimante", b: "Le scanner (numériseur)", c: "L'écran simple", d: "Les haut-parleurs" }, correct: "b" },
                 { q: "Quel périphérique est un périphérique de SORTIE ?", options: { a: "Le clavier", b: "Le microphone", c: "Le vidéoprojecteur", d: "Le scanner" }, correct: "c" },
                 { q: "Quelle touche supprime un caractère situé à GAUCHE du curseur ?", options: { a: "Suppr (Delete)", b: "Retour arrière (Backspace)", c: "La barre d'espace", d: "Entrée" }, correct: "b" },
                 { q: "Quel périphérique permet à la fois d'envoyer et de recevoir des informations (MIXTE) ?", options: { a: "Le clavier", b: "La souris", c: "L'écran tactile", d: "L'imprimante classique" }, correct: "c" }
@@ -301,13 +296,14 @@
             3: { primary: "rgb(244, 63, 94)", bg: "#16050b", border: "rgba(244, 63, 94, 0.3)", glow: "rgba(244, 63, 94, 0.2)", text: "text-rose-400", badge: "bg-rose-500/20 text-rose-300 border-rose-500/30", bar: "bg-gradient-to-r from-rose-500 to-orange-500", button: "bg-rose-600 hover:bg-rose-500" }
         };
 
+        // --- ENREGISTREMENT DE VOS VRAIS FICHIERS IMAGES REÇUS ---
         const REAL_FLOWERS = [
             "fleur1.png",
             "fleur2.png",
             "fleur3.png"
         ];
 
-        // --- GÉNÉRATEUR AUDIO (BOUCLES INFINIES EN CONTINU) ---
+        // --- GÉNÉRATEUR AUDIO (BOUCLES INFINIES EN CONTIRE) ---
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         let backgroundMusicNode = null;
         let successMusicNode = null;
@@ -342,6 +338,15 @@
             });
         }
 
+        function resetAllMusicVolume() {
+            activeInstruments.forEach(inst => {
+                if (audioCtx.currentTime < inst.startTime + inst.duration) {
+                    inst.gainNode.gain.setValueAtTime(inst.originalVolume, audioCtx.currentTime);
+                }
+            });
+        }
+
+        // Musique en boucle infinie
         function playCombinedMusicLoop(patterns, tempo) {
             if (audioCtx.state === 'suspended') audioCtx.resume();
 
@@ -366,7 +371,7 @@
                 beatIndex++;
             }
 
-            runBeat();
+            runBeat(); // Joue instantanément
             const interval = setInterval(runBeat, tempo * 1000);
 
             return {
@@ -446,7 +451,6 @@
             failMusicNode = playCombinedMusicLoop(patterns, 0.55);
         }
 
-        // --- ENTRAINEMENT DES MUSIQUES ---
         function stopAllMusic() {
             if (backgroundMusicNode) { backgroundMusicNode.stop(); backgroundMusicNode = null; }
             if (successMusicNode) { successMusicNode.stop(); successMusicNode = null; }
@@ -464,14 +468,18 @@
             visualEffectsInterval = setInterval(() => {
                 const img = document.createElement("img");
                 img.className = "flower-item";
+                
+                // Utilisation exclusive des fichiers réels reçus
                 img.src = REAL_FLOWERS[Math.floor(Math.random() * REAL_FLOWERS.length)];
+                
                 img.style.left = (Math.random() * 85) + "vw";
-                const size = Math.random() * 70 + 90;
+                const size = Math.random() * 70 + 90; // Taille imposante et bien visible des fleurs
                 img.style.width = size + "px";
                 img.style.height = "auto";
                 img.style.animationDuration = (Math.random() * 2.5 + 4.5) + "s";
 
                 container.appendChild(img);
+                
                 setTimeout(() => img.remove(), 7500);
             }, 350);
         }
@@ -489,6 +497,39 @@
 
                 setTimeout(() => drop.remove(), 2000);
             }, 30);
+        }
+
+        // --- ENVOI DES DONNÉES (SHEETDB) ---
+        function envoyerNoteA_Excel(nomEleve, civiliteEleve, scoreEleve) {
+            const apiURL = "https://sheetdb.io/api/v1/8jutgab6bhp94"; 
+            const dateAujourdhui = new Date().toLocaleString("fr-FR");
+
+            const donnees = {
+                data: [
+                    {
+                        nom: nomEleve,
+                        civilite: civiliteEleve,
+                        score: scoreEleve + " / 16",
+                        date: dateAujourdhui
+                    }
+                ]
+            };
+
+            fetch(apiURL, {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(donnees)
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log("Note enregistrée avec succès !", data);
+            })
+            .catch(error => {
+                console.error("Erreur d'envoi :", error);
+            });
         }
 
         function stopVisualEffects() {
@@ -611,7 +652,6 @@
             userAnswers.push(selectedKey);
             if (selectedKey === LEVELS[currentLevel][currentIndex].correct) {
                 score++;
-                totalExamScore++; // Cumul global
             }
             currentIndex++;
             if (currentIndex < LEVELS[currentLevel].length) {
@@ -640,78 +680,58 @@
             const statusEl = document.getElementById("result-status");
             const iconEl = document.getElementById("result-icon");
             const actionBtn = document.getElementById("action-btn");
-            const menuBtn = document.getElementById("menu-btn");
             const card = document.getElementById("main-card");
 
             card.classList.remove("shake-element");
 
-            // --- DEBLOCAGE DU NIVEAU SUIVANT SANS EXCEPTION ---
-            if (currentLevel < 3) {
-                if (!unlockedLevels.includes(currentLevel + 1)) {
-                    unlockedLevels.push(currentLevel + 1);
-                }
-            }
-
             if (isWin) {
-                playVictoryMusic();
+                playVictoryMusic(); // Lancé en boucle continue !
                 startVictoryFlowers();
 
                 titleEl.className = "text-xl sm:text-2xl font-extrabold text-emerald-400 mb-1";
                 statusEl.className = "text-sm font-semibold text-emerald-400 mb-4";
-                actionBtn.className = `w-full text-white font-bold py-3.5 rounded-xl text-xs sm:text-sm transition duration-150 shadow-md ${theme.button}`;
-                menuBtn.classList.add("hidden"); // Cache le bouton retour durant le parcours
+                actionBtn.className = `flex-1 text-white font-bold py-3 rounded-xl text-xs transition duration-150 shadow-md ${theme.button}`;
 
                 let spokenMessage = "";
                 if (currentLevel < 3) {
                     iconEl.innerText = "👑";
                     titleEl.innerText = `Niveau ${currentLevel} Complété !`;
-                    statusEl.innerText = "Parfait ! Vous passez au niveau suivant !";
-                    actionBtn.innerText = "Passer au Level " + (currentLevel + 1) + " ➔";
+                    statusEl.innerText = "Parfait ! Vous avez débloqué le niveau suivant avec brio !";
+                    actionBtn.innerText = "Lancer le Level " + (currentLevel + 1) + " ➔";
+                    if (!unlockedLevels.includes(currentLevel + 1)) unlockedLevels.push(currentLevel + 1);
 
-                    spokenMessage = `Félicitations, ${prefix} ${studentName} ! Vous avez brillamment réussi le niveau ${currentLevel} ! Passons maintenant au suivant.`;
+                    spokenMessage = `Félicitations, ${prefix} ${studentName} ! Vous avez brillamment réussi le niveau ${currentLevel} de notre didacticiel ! Toutes nos fleurs sont pour vous !`;
                 } else {
                     iconEl.innerText = "🏆";
                     titleEl.innerText = "Maître Suprême des TIC !";
-                    statusEl.innerText = "Excellent travail ! Vous avez complété tous les niveaux !";
-                    
-                    // Fin complète de l'examen : On active le bouton de retour à l'accueil
-                    actionBtn.innerText = "🏠 Revenir à l'accueil (Recommencer)";
-                    actionBtn.className = "w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3.5 rounded-xl text-xs sm:text-sm transition duration-150 shadow-md";
+                    statusEl.innerText = "Excellent travail ! Vous avez brillamment complété tous les niveaux !";
+                    actionBtn.innerText = "🏠 Revenir à l'accueil";
 
-                    spokenMessage = `Merveilleux ! Toutes nos félicitations ${prefix} ${studentName} ! Vous viens de terminer tous les niveaux avec succès !`;
+                    spokenMessage = `Merveilleux ! Toutes nos félicitations ${prefix} ${studentName} ! Vous venez de réussir tous les niveaux avec succès et devenez officiellement un expert en T I C de septième année !`;
                     
-                    envoyerNoteA_Excel(studentName, prefix, totalExamScore);
+                    // Envoi final des notes à la fin du didacticiel
+                    envoyerNoteA_Excel(studentName, prefix, 16);
                 }
 
                 speak(spokenMessage, 0.1);
 
             } else {
-                playFailureMusic();
+                playFailureMusic(); // Lancé en boucle continue !
                 startFailureRain();
                 
                 card.classList.add("shake-element");
 
-                iconEl.innerText = "⚠️";
-                titleEl.className = "text-xl sm:text-2xl font-extrabold text-yellow-500 mb-1";
-                titleEl.innerText = "Niveau Terminé avec des erreurs";
-                statusEl.className = "text-sm font-semibold text-slate-300 mb-4";
-                menuBtn.classList.add("hidden"); // Sécurité : pas de triche ou de retour intermédiaire
+                iconEl.innerText = "❌";
+                titleEl.className = "text-xl sm:text-2xl font-extrabold text-red-500 mb-1";
+                titleEl.innerText = "Niveau Échoué !";
+                statusEl.className = "text-sm font-semibold text-red-400 mb-4";
+                statusEl.innerText = "Ne vous découragez pas. Obtenez un sans-faute pour débloquer le niveau suivant.";
+                
+                actionBtn.className = "flex-1 bg-red-600 hover:bg-red-500 text-white font-bold py-3 rounded-xl text-xs transition duration-150 shadow-md";
+                actionBtn.innerText = "🔄 Réessayer le niveau";
 
-                if (currentLevel < 3) {
-                    statusEl.innerText = "Le niveau suivant a été débloqué pour vous permettre de continuer l'apprentissage !";
-                    actionBtn.className = `w-full text-white font-bold py-3.5 rounded-xl text-xs sm:text-sm transition duration-150 shadow-md ${theme.button}`;
-                    actionBtn.innerText = "Passer au Level " + (currentLevel + 1) + " ➔";
-                } else {
-                    statusEl.innerText = "Vous êtes arrivé au bout du parcours !";
-                    actionBtn.className = "w-full bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold py-3.5 rounded-xl text-xs sm:text-sm transition duration-150 shadow-md";
-                    actionBtn.innerText = "🏠 Revenir à l'accueil (Recommencer)";
-                }
-
-                const failMessage = `Vous avez fait quelques erreurs, ${prefix} ${studentName}, mais pas de panique ! Nous débloquons le niveau suivant pour vous encourager à continuer d'apprendre.`;
+                const failMessage = `Oh dommage, ${prefix} ${studentName}. Ne vous découragez pas. Reprenez le niveau tranquillement pour obtenir votre sans-faute.`;
                 speak(failMessage, 0.1);
-
-                // Sauvegarde de la note intermédiaire/finale
-                envoyerNoteA_Excel(studentName, prefix, totalExamScore);
             }
 
             // Correction détaillée
@@ -738,12 +758,23 @@
             stopVisualEffects();
             stopAllMusic();
             window.speechSynthesis.cancel();
-            
-            if (currentLevel < 3) {
-                startLevel(currentLevel + 1);
+            const isWin = score === LEVELS[currentLevel].length;
+            if (isWin) {
+                if (currentLevel < 3) {
+                    startLevel(currentLevel + 1);
+                } else {
+                    goHome();
+                }
             } else {
-                goHome();
+                startLevel(currentLevel);
             }
+        }
+
+        function retryCurrentLevel() {
+            stopVisualEffects();
+            stopAllMusic();
+            window.speechSynthesis.cancel();
+            startLevel(currentLevel);
         }
 
         function goHome() {
@@ -755,9 +786,6 @@
             document.getElementById("main-card").style.boxShadow = "0 0 40px rgba(0,0,0,0.6)";
             document.getElementById("result-screen").classList.add("hidden");
             document.getElementById("home-screen").classList.remove("hidden");
-            
-            // À la fin du parcours complet (retour à l'accueil), on réinitialise l'accès pour pouvoir recommencer
-            unlockedLevels = [1];
             updateHomeDashboard();
         }
 
@@ -798,39 +826,6 @@
                     badge.onclick = null;
                 }
             }
-        }
-
-        // --- ENVOI AUTOMATIQUE DES NOTES VERS GOOGLE SHEETS VIA SHEETDB ---
-        function envoyerNoteA_Excel(nomEleve, civiliteEleve, scoreEleve) {
-            const apiURL = "https://sheetdb.io/api/v1/8jutgab6bhp94"; 
-            const dateAujourdhui = new Date().toLocaleString("fr-FR");
-
-            const donnees = {
-                data: [
-                    {
-                        nom: nomEleve,
-                        civilite: civiliteEleve,
-                        score: scoreEleve + " / 16",
-                        date: dateAujourdhui
-                    }
-                ]
-            };
-
-            fetch(apiURL, {
-                method: 'POST',
-                headers: {
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(donnees)
-            })
-            .then(response => response.json())
-            .then(data => {
-                console.log("Note enregistrée avec succès !", data);
-            })
-            .catch(error => {
-                console.error("Erreur d'envoi :", error);
-            });
         }
     </script>
 </body>
