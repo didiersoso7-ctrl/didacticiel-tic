@@ -100,6 +100,21 @@
                     <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Votre Nom complet :</label>
                     <input type="text" id="user-name-input" placeholder="Ex: Didier" class="w-full bg-slate-900/60 border border-slate-700/60 focus:border-blue-500 rounded-xl px-4 py-3 text-sm text-slate-100 placeholder-slate-500 focus:outline-none transition duration-200">
                 </div>
+
+                <!-- IMPORTATION DE MUSIQUE FACULTATIVE -->
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">🎵 Musique de fond personnalisée (Optionnel) :</label>
+                    <div class="relative flex items-center justify-center w-full">
+                        <label class="flex flex-col items-center justify-center w-full h-14 border-2 border-dashed border-slate-700 hover:border-indigo-500 bg-slate-900/20 hover:bg-slate-900/40 rounded-xl cursor-pointer transition duration-150">
+                            <div class="flex items-center space-x-2 text-xs text-slate-400">
+                                <span class="text-base">💿</span>
+                                <span id="music-file-name">Importer un fichier audio (MP3, WAV...)</span>
+                            </div>
+                            <input type="file" id="custom-music-input" accept="audio/*" class="hidden" onchange="handleMusicUpload(this)">
+                        </label>
+                    </div>
+                </div>
+
                 <div>
                     <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Sélectionnez votre civilité pour démarrer :</label>
                     <div class="grid grid-cols-2 gap-3">
@@ -107,7 +122,7 @@
                             <span class="text-xl">👨</span>
                             <span>Monsieur</span>
                         </button>
-                        <button type="button" onclick="selectGenderAndSubmit('F')" class="border border-slate-700/60 bg-slate-900/40 hover:bg-pink-905/30 hover:text-white text-xs font-semibold py-4 rounded-xl transition duration-150 text-center flex flex-col items-center justify-center gap-1">
+                        <button type="button" onclick="selectGenderAndSubmit('F')" class="border border-slate-700/60 bg-slate-900/40 hover:bg-pink-950/30 hover:text-white text-xs font-semibold py-4 rounded-xl transition duration-150 text-center flex flex-col items-center justify-center gap-1">
                             <span class="text-xl">👩</span>
                             <span>Mademoiselle</span>
                         </button>
@@ -212,10 +227,26 @@
     </div>
 
     <script>
-        // --- PROFIL ÉLÈVE ---
+        // --- PROFIL ÉLÈVE & MUSIQUE AUDIO IMPORTÉE ---
         let studentName = "";
         let studentGender = ""; // "M" ou "F"
         let totalExamScore = 0; // Cumul des scores sur l'ensemble de l'examen (max 16)
+        let importedMusicURL = null; // Contiendra l'URL object blob de la musique importée
+        let customAudioTrack = null; // Instance de l'élément Audio HTML5
+
+        // Gestion de l'importation de fichier musical externe
+        function handleMusicUpload(input) {
+            if (input.files && input.files[0]) {
+                const file = input.files[0];
+                document.getElementById("music-file-name").innerText = `🎵 Recu : ${file.name.substring(0, 20)}...`;
+                
+                // Libérer l'ancienne URL si existante
+                if (importedMusicURL) URL.revokeObjectURL(importedMusicURL);
+                
+                // Création d'une URL de flux locale instantanée
+                importedMusicURL = URL.createObjectURL(file);
+            }
+        }
 
         // Soumission automatique lors du choix du genre
         function selectGenderAndSubmit(gender) {
@@ -236,7 +267,7 @@
             const prefix = studentGender === 'M' ? "Monsieur" : "Mademoiselle";
             document.getElementById("welcome-message").innerText = `Bonjour ${prefix} ${studentName}, prêt à relever le défi ?`;
             
-            // Débloquer l'audio
+            // Débloquer l'audio Web Audio API
             if (audioCtx.state === 'suspended') {
                 audioCtx.resume();
             }
@@ -250,7 +281,7 @@
             window.speechSynthesis.cancel();
 
             const utterance = new SpeechSynthesisUtterance(text);
-            utterance.lang = 'fr-FR';
+             utterance.lang = 'fr-FR';
             utterance.rate = 1.0;
             utterance.pitch = 1.0;
 
@@ -335,12 +366,18 @@
             activeInstruments.push({ gainNode, originalVolume: volume, duration, startTime: audioCtx.currentTime + delay });
         }
 
+        // Gère de manière unifiée le volume des synthétiseurs ET de la musique importée
         function setAllMusicVolume(factor) {
+            // Volume du synthé JS
             activeInstruments.forEach(inst => {
                 if (audioCtx.currentTime < inst.startTime + inst.duration) {
                     inst.gainNode.gain.setValueAtTime(inst.originalVolume * factor, audioCtx.currentTime);
                 }
             });
+            // Volume de la musique MP3 importée
+            if (customAudioTrack) {
+                customAudioTrack.volume = 0.4 * factor;
+            }
         }
 
         function playCombinedMusicLoop(patterns, tempo) {
@@ -375,34 +412,39 @@
             };
         }
 
-        // --- MUSIQUE EN JEU MODIFIÉE : PLUS CHAUDE ET RYTHMÉE ---
+        // --- GESTION DES TRACKS AUDIO DE BACKGROUND EN JEU ---
         function playInGameMusic() {
             stopAllMusic();
             
-            // Accords chauds en arpège et ligne de basse plus rebondissante
-            const patterns = [
-                {
-                    // Ligne mélodique haute et chaleureuse
-                    type: "sine",
-                    volume: 0.06,
-                    notes: [329.63, 392.00, 440.00, 523.25, 440.00, 392.00, 329.63, 0]
-                },
-                {
-                    // Basse ronde "plus chaude"
-                    type: "triangle",
-                    volume: 0.12,
-                    notes: [110.00, 110.00, 130.81, 0, 146.83, 146.83, 164.81, 130.81]
-                },
-                {
-                    // Petit contre-temps rythmique dynamique adouci
-                    type: "sawtooth",
-                    volume: 0.015,
-                    notes: [0, 220.00, 0, 261.63, 0, 293.66, 0, 196.00]
-                }
-            ];
-            backgroundMusicNode = playCombinedMusicLoop(patterns, 0.30); // Tempo légèrement accéléré (plus entraînant)
+            // Si l'utilisateur a chargé une musique personnalisée, on l'utilise en priorité !
+            if (importedMusicURL) {
+                customAudioTrack = new Audio(importedMusicURL);
+                customAudioTrack.loop = true;
+                customAudioTrack.volume = 0.4;
+                customAudioTrack.play().catch(e => console.log("Attente interaction utilisateur"));
+            } else {
+                // Sinon, repli sur l'ancienne boucle synthé chaleureuse
+                const patterns = [
+                    {
+                        type: "sine",
+                        volume: 0.06,
+                        notes: [329.63, 392.00, 440.00, 523.25, 440.00, 392.00, 329.63, 0]
+                    },
+                    {
+                        type: "triangle",
+                        volume: 0.12,
+                        notes: [110.00, 110.00, 130.81, 0, 146.83, 146.83, 164.81, 130.81]
+                    },
+                    {
+                        type: "sawtooth",
+                        volume: 0.015,
+                        notes: [0, 220.00, 0, 261.63, 0, 293.66, 0, 196.00]
+                    }
+                ];
+                backgroundMusicNode = playCombinedMusicLoop(patterns, 0.30);
+            }
             
-            // Déclenche la voix chantée de motivation toutes les 14 secondes pendant le jeu
+            // Lance les encouragements toutes les 14 secondes
             startMotivationSinging();
         }
 
@@ -416,18 +458,15 @@
                     return;
                 }
 
-                // Étape 1 : Des notes chantantes customisées basées sur le nom
                 const notesVoix = [261.63, 293.66, 329.63, 349.23, 392.00, 440.00];
                 let delay = 0;
                 
-                // Simule une voix chantée synthétique rythmée qui scande le prénom
                 for (let i = 0; i < Math.min(studentName.length, 5); i++) {
                     const noteAleatoire = notesVoix[Math.floor(Math.random() * notesVoix.length)];
                     triggerSynthNote(noteAleatoire, "sine", 0.15, 0.25, delay);
                     delay += 0.22;
                 }
 
-                // Étape 2 : Complété en même temps par une incitation vocale motivante en français
                 setTimeout(() => {
                     const encouragements = [
                         `Allez ${studentName}, tu es le meilleur !`,
@@ -439,7 +478,7 @@
                     speak(phrase, 0.03);
                 }, delay * 1000);
 
-            }, 14000); // Se produit toutes les 14 secondes durant la partie
+            }, 14000);
         }
 
         function playVictoryMusic() {
@@ -502,6 +541,13 @@
             if (successMusicNode) { successMusicNode.stop(); successMusicNode = null; }
             if (failMusicNode) { failMusicNode.stop(); failMusicNode = null; }
             if (motivationInterval) { clearInterval(motivationInterval); motivationInterval = null; }
+            
+            // Arrêter également la musique MP3 importée si elle est en cours de lecture
+            if (customAudioTrack) {
+                customAudioTrack.pause();
+                customAudioTrack.currentTime = 0;
+                customAudioTrack = null;
+            }
             activeInstruments = [];
         }
 
@@ -623,7 +669,7 @@
                 btn.onclick = () => selectOption(key, btn);
                 btn.innerHTML = `
                     <span class="w-4 h-4 rounded-full border-2 border-slate-600 flex items-center justify-center mr-3 flex-shrink-0 option-radio"></span>
-                    <span class="text-slate-300 text-xs sm:text-sm font-medium"><strong class="mr-1 text-slate-400 font-bold">${key.toUpperCase()})</strong> ${value}</span>
+                    <span class="text-slate-300 text-xs sm:text-sm font-medium"><strong class="mr-1 text-slate-400 uppercase">${key}.</strong> ${value}</span>
                 `;
                 container.appendChild(btn);
             }
@@ -631,39 +677,43 @@
 
         function selectOption(key, element) {
             selectedKey = key;
-            const theme = LEVEL_THEMES[currentLevel];
-            const allButtons = document.querySelectorAll(".option-btn");
-
-            allButtons.forEach(btn => {
-                btn.style.borderColor = "transparent";
-                btn.classList.remove("bg-slate-800/60");
-                const radio = btn.querySelector(".option-radio");
-                radio.style.backgroundColor = "transparent";
-                radio.style.borderColor = "#475569";
-                radio.innerHTML = "";
+            
+            document.querySelectorAll(".option-btn").forEach(btn => {
+                btn.classList.remove("border-blue-500", "bg-blue-950/20");
+                btn.classList.add("border-slate-800/80", "bg-slate-900/40");
+                btn.querySelector(".option-radio").classList.remove("border-blue-500", "bg-blue-500");
+                btn.querySelector(".option-radio").innerHTML = "";
             });
 
-            element.style.borderColor = theme.primary;
-            element.classList.add("bg-slate-800/60");
+            element.classList.remove("border-slate-800/80", "bg-slate-900/40");
+            element.classList.add("border-blue-500", "bg-blue-950/20");
             
             const radio = element.querySelector(".option-radio");
-            radio.style.borderColor = theme.primary;
-            radio.style.backgroundColor = theme.primary;
-            radio.innerHTML = `<span class="w-1 h-1 rounded-full bg-white"></span>`;
+            radio.classList.add("border-blue-500", "bg-blue-500");
+            radio.innerHTML = `<div class="w-1.5 h-1.5 rounded-full bg-slate-900"></div>`;
 
             const nextBtn = document.getElementById("next-btn");
             nextBtn.disabled = false;
-            nextBtn.className = `w-full text-white font-bold py-3 rounded-xl text-xs sm:text-sm transition-all duration-300 shadow-md cursor-pointer ${theme.button}`;
-            nextBtn.innerText = "Valider & Continuer ➔";
+            nextBtn.className = "w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-xl text-xs sm:text-sm transition-all duration-300 shadow-md cursor-pointer";
+            nextBtn.innerText = (currentIndex === LEVELS[currentLevel].length - 1) ? "Terminer le Niveau" : "Valider la réponse ➔";
         }
 
         function submitAnswer() {
             if (!selectedKey) return;
-            userAnswers.push(selectedKey);
-            if (selectedKey === LEVELS[currentLevel][currentIndex].correct) {
+            
+            const currentQ = LEVELS[currentLevel][currentIndex];
+            userAnswers.push({
+                question: currentQ.q,
+                chosen: selectedKey,
+                chosenText: currentQ.options[selectedKey],
+                correct: currentQ.correct,
+                correctText: currentQ.options[currentQ.correct]
+            });
+
+            if (selectedKey === currentQ.correct) {
                 score++;
-                totalExamScore++;
             }
+
             currentIndex++;
             if (currentIndex < LEVELS[currentLevel].length) {
                 loadQuestion();
@@ -673,118 +723,185 @@
         }
 
         function showResults() {
-            stopAllMusic(); // Arrête la musique chaude de jeu et les chants
+            stopAllMusic();
             document.getElementById("quiz-screen").classList.add("hidden");
-            const resultScreen = document.getElementById("result-screen");
-            resultScreen.classList.remove("hidden");
+            document.getElementById("result-screen").classList.remove("hidden");
 
             const totalQ = LEVELS[currentLevel].length;
-            const isWin = score === totalQ;
-            const theme = LEVEL_THEMES[currentLevel];
+            const percentage = (score / totalQ) * 100;
+            const success = percentage >= 50;
 
+            const prefix = studentGender === 'M' ? "Monsieur" : "Mademoiselle";
+            document.getElementById("student-salutation").innerText = `${prefix} ${studentName}`;
             document.getElementById("final-score").innerText = `${score} / ${totalQ}`;
-            document.getElementById("student-salutation").innerText = `${studentGender === 'M' ? 'Monsieur' : 'Mademoiselle'} ${studentName}`;
+
+            const cList = document.getElementById("correction-list");
+            cList.innerHTML = "";
+
+            userAnswers.forEach((ans, idx) => {
+                const item = document.createElement("div");
+                item.className = "p-2.5 rounded-lg bg-slate-900/60 border border-slate-800/60";
+                
+                const isCorrect = ans.chosen === ans.correct;
+                item.innerHTML = `
+                    <p class="font-bold text-slate-200 mb-1">Q${idx + 1}: ${ans.question}</p>
+                    <p class="${isCorrect ? 'text-emerald-400' : 'text-rose-400'} font-medium">Votre réponse : (${ans.chosen.toUpperCase()}) ${ans.chosenText}</p>
+                    ${!isCorrect ? `<p class="text-emerald-400 font-medium">Réponse correcte : (${ans.correct.toUpperCase()}) ${ans.correctText}</p>` : ''}
+                `;
+                cList.appendChild(item);
+            });
 
             const actionBtn = document.getElementById("action-btn");
             const menuBtn = document.getElementById("menu-btn");
             const card = document.getElementById("main-card");
 
-            const correctionList = document.getElementById("correction-list");
-            correctionList.innerHTML = "";
-
-            LEVELS[currentLevel].forEach((item, index) => {
-                const uAns = userAnswers[index];
-                const isCorrect = uAns === item.correct;
-                const div = document.createElement("div");
-                div.className = "border-l-2 pl-2 " + (isCorrect ? "border-green-500" : "border-rose-500");
-                div.innerHTML = `
-                    <p class="font-semibold text-slate-200">Q${index+1}: ${item.q}</p>
-                    <p class="text-[11px] ${isCorrect ? 'text-green-400' : 'text-rose-400'}">Votre réponse : ${uAns.toUpperCase()}) ${item.options[uAns]}</p>
-                    ${!isCorrect ? `<p class="text-[11px] text-green-400">Correct : ${item.correct.toUpperCase()}) ${item.options[item.correct]}</p>` : ''}
-                `;
-                correctionList.appendChild(div);
-            });
-
-            if (isWin) {
+            if (success) {
                 document.getElementById("result-icon").innerText = "🎉";
-                document.getElementById("result-title").innerText = "Niveau Complété !";
-                document.getElementById("result-status").innerText = "Félicitations ! Score parfait ! Un sans-faute remarquable.";
-                document.getElementById("result-status").className = "text-sm font-semibold text-green-400 mb-4";
+                document.getElementById("result-title").innerText = "Niveau Réussi !";
+                document.getElementById("result-status").innerText = "Félicitations ! Vous avez acquis les compétences requises.";
+                document.getElementById("result-status").className = "text-sm font-semibold mb-4 text-emerald-400";
                 
-                actionBtn.className = `w-full text-white font-bold py-3.5 rounded-xl text-xs sm:text-sm transition duration-150 shadow-md ${theme.button}`;
-                
+                playVictoryMusic();
+                startVictoryFlowers();
+
+                totalExamScore += score; 
+
                 if (currentLevel < 3) {
                     const nextLvl = currentLevel + 1;
                     if (!unlockedLevels.includes(nextLvl)) unlockedLevels.push(nextLvl);
+                    
                     actionBtn.innerText = `Passer au Level ${nextLvl} ➔`;
-                    actionBtn.onclick = () => startLevel(nextLvl);
-                    menuBtn.classList.add("hidden");
-                } else {
-                    actionBtn.innerText = "🏆 Examen Terminé avec Succès !";
-                    actionBtn.onclick = null;
-                    actionBtn.className = "w-full bg-gradient-to-r from-yellow-500 to-amber-600 text-white font-bold py-3.5 rounded-xl text-xs sm:text-sm cursor-default shadow-md";
+                    actionBtn.className = "w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3.5 rounded-xl text-xs sm:text-sm transition duration-150 shadow-md cursor-pointer";
                     menuBtn.classList.remove("hidden");
+                } else {
+                    // Fin de la campagne
+                    actionBtn.innerText = "Afficher le Bilan Global final 📜";
+                    actionBtn.className = "w-full bg-amber-600 hover:bg-amber-500 text-white font-bold py-3.5 rounded-xl text-xs sm:text-sm transition duration-150 shadow-md cursor-pointer";
+                    menuBtn.classList.add("hidden");
                 }
 
-                playVictoryMusic();
-                startVictoryFlowers();
-                speak(`Félicitations ${studentName} ! Tu as obtenu un score parfait de ${score} sur ${totalQ}. Tu es un génie !`, 0.01);
+                speak(`Félicitations ${prefix} ${studentName} ! Vous avez réussi le niveau ${currentLevel} avec un score de ${score} sur ${totalQ}!`, 0.01);
+
             } else {
+                document.getElementById("result-icon").innerText = "⛈️";
+                document.getElementById("result-title").innerText = "Niveau Échoué !";
+                document.getElementById("result-status").innerText = "Score insuffisant. Il faut obtenir au moins 50% de bonnes réponses.";
+                document.getElementById("result-status").className = "text-sm font-semibold mb-4 text-rose-400";
+                
+                playFailureMusic();
+                startFailureRain();
+
                 card.classList.add("shake-element");
                 setTimeout(() => card.classList.remove("shake-element"), 500);
 
-                document.getElementById("result-icon").innerText = "📉";
-                document.getElementById("result-title").innerText = "Échec du Niveau";
-                document.getElementById("result-status").innerText = `Vous devez obtenir ${totalQ}/${totalQ} pour passer au niveau suivant.`;
-                document.getElementById("result-status").className = "text-sm font-semibold text-rose-400 mb-4";
-                
-                actionBtn.className = "w-full bg-rose-600 hover:bg-rose-500 text-white font-bold py-3.5 rounded-xl text-xs sm:text-sm transition duration-150 shadow-md";
-                actionBtn.innerText = "Recommencer le Niveau ↻";
-                actionBtn.onclick = () => startLevel(currentLevel);
-                
+                actionBtn.innerText = "🔄 Réessayer le niveau";
+                actionBtn.className = "w-full bg-rose-600 hover:bg-rose-500 text-white font-bold py-3.5 rounded-xl text-xs sm:text-sm transition duration-150 shadow-md cursor-pointer";
                 menuBtn.classList.remove("hidden");
 
-                playFailureMusic();
-                startFailureRain();
-                speak(`Dommage ${studentName}, tu as fait ${score} sur ${totalQ}. Ne te décourage pas, réessaie, tu vas y arriver !`, 0.01);
+                speak(`Oh dommage ${prefix} ${studentName}, le niveau ${currentLevel} est échoué. Vous avez fait ${score} sur ${totalQ}. Réessayez, vous allez y arriver !`, 0.01);
             }
-            
-            updateHomeBadges();
+
+            updateHomeDashboard();
         }
 
-        function updateHomeBadges() {
-            for (let i = 2; i <= 3; i++) {
-                const badge = document.getElementById(`status-l${i}`);
-                if (unlockedLevels.includes(i)) {
-                    badge.classList.remove("opacity-40");
-                    badge.classList.add("cursor-pointer", "hover:scale-[1.02]", "bg-purple-950/20", "border-purple-500/30");
-                    const titleSpan = badge.children[1];
-                    titleSpan.innerText = i === 2 ? "Moyen" : "Difficile";
-                    titleSpan.classList.remove("text-slate-400");
-                    titleSpan.classList.add("text-slate-200");
-                    badge.setAttribute("onclick", `startLevel(${i})`);
+        function nextAction() {
+            const totalQ = LEVELS[currentLevel].length;
+            const percentage = (score / totalQ) * 100;
+            const success = percentage >= 50;
+
+            if (!success) {
+                startLevel(currentLevel);
+            } else {
+                if (currentLevel < 3) {
+                    startLevel(currentLevel + 1);
+                } else {
+                    showFinalExamCertificate();
                 }
+            }
+        }
+
+        function showFinalExamCertificate() {
+            stopAllMusic();
+            stopVisualEffects();
+            
+            document.getElementById("result-icon").innerText = "🏆";
+            document.getElementById("result-title").innerText = "Examen de TIC Terminé !";
+            document.getElementById("result-subtitle").innerText = "Bilan global de vos performances";
+            
+            // Score total cumulé maximum = 4 (L1) + 5 (L2) + 7 (L3) = 16
+            document.getElementById("final-score").innerText = `${totalExamScore} / 16`;
+            
+            const prefix = studentGender === 'M' ? "Monsieur" : "Mademoiselle";
+            let appreciation = "";
+            let colorClass = "";
+            
+            if (totalExamScore >= 14) { appreciation = "Niveau Expert Absolu 🌟 !"; colorClass = "text-amber-400"; startVictoryFlowers(); playVictoryMusic(); }
+            else if (totalExamScore >= 10) { appreciation = "Niveau Satisfaisant ✨ !"; colorClass = "text-emerald-400"; startVictoryFlowers(); playVictoryMusic(); }
+            else { appreciation = "Niveau Moyen 📚, des révisions sont conseillées."; colorClass = "text-blue-400"; }
+            
+            document.getElementById("result-status").innerText = appreciation;
+            document.getElementById("result-status").className = `text-base font-bold mb-4 ${colorClass}`;
+            
+            document.getElementById("correction-title").innerText = "Mention Pédagogique :";
+            document.getElementById("correction-list").innerHTML = `
+                <div class="p-3 rounded-lg bg-slate-900/90 border border-slate-800 text-center text-slate-300">
+                    <p class="mb-1">L'apprenant <strong>${studentName}</strong> a traversé l'intégralité du programme d'évaluation automatique en Cascade Numérique.</p>
+                    <p class="text-[11px] text-slate-400 mt-2">Outil d'évaluation autonome conçu pour la 7ème Année de l'Éducation de Base.</p>
+                </div>
+            `;
+            
+            const actionBtn = document.getElementById("action-btn");
+            actionBtn.innerText = "🔄 Recommencer tout l'Examen";
+            actionBtn.className = "w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3.5 rounded-xl text-xs sm:text-sm transition duration-150 shadow-md cursor-pointer";
+            actionBtn.onclick = () => {
+                location.reload();
+            };
+            
+            document.getElementById("menu-btn").classList.add("hidden");
+            
+            speak(`Félicitations finales ${prefix} ${studentName}! Vous avez terminé tout le didacticiel avec un score total accumulé de ${totalExamScore} sur seize. À bientôt !`, 0.01);
+        }
+
+        function updateHomeDashboard() {
+            for (let l = 1; l <= 3; l++) {
+                const div = document.getElementById(`status-l${l}`);
+                if (!div) continue;
+
+                if (unlockedLevels.includes(l)) {
+                    div.classList.remove("opacity-40", "bg-slate-900/10", "border-slate-800/30");
+                    div.classList.add("cursor-pointer", "hover:scale-[1.02]");
+                    
+                    if (l === 1) { div.className = "bg-blue-950/20 border border-blue-500/30 p-3 rounded-xl cursor-pointer hover:scale-[1.02] transition-all duration-200"; div.querySelector("span:nth-child(2)").innerText = "Facile"; }
+                    if (l === 2) { div.className = "bg-purple-950/20 border border-purple-500/30 p-3 rounded-xl cursor-pointer hover:scale-[1.02] transition-all duration-200"; div.querySelector("span:nth-child(2)").innerText = "Moyen"; div.querySelector("span:nth-child(2)").className = "block text-xs font-bold text-slate-200"; }
+                    if (l === 3) { div.className = "bg-rose-950/20 border border-rose-500/30 p-3 rounded-xl cursor-pointer hover:scale-[1.02] transition-all duration-200"; div.querySelector("span:nth-child(2)").innerText = "Difficile"; div.querySelector("span:nth-child(2)").className = "block text-xs font-bold text-slate-200"; }
+                    
+                    div.setAttribute("onclick", `startLevel(${l})`);
+                }
+            }
+            
+            const startBtn = document.getElementById("start-btn");
+            if (unlockedLevels.includes(3)) {
+                startBtn.innerText = "Continuer vers le Level 3 ➔";
+                startBtn.className = "w-full bg-rose-600 hover:bg-rose-500 text-white font-bold py-3 rounded-xl text-sm transition-all duration-300 shadow-md";
+                startBtn.setAttribute("onclick", "startLevel(3)");
+            } else if (unlockedLevels.includes(2)) {
+                startBtn.innerText = "Continuer vers le Level 2 ➔";
+                startBtn.className = "w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-3 rounded-xl text-sm transition-all duration-300 shadow-md";
+                startBtn.setAttribute("onclick", "startLevel(2)");
             }
         }
 
         function goHome() {
             stopVisualEffects();
             stopAllMusic();
-            
-            document.body.style.backgroundColor = "#070b13";
-            const card = document.getElementById("main-card");
-            card.style.borderColor = "#1e293b";
-            card.style.boxShadow = "0 0 50px rgba(0,0,0,0.7)";
-
             document.getElementById("result-screen").classList.add("hidden");
             document.getElementById("quiz-screen").classList.add("hidden");
             document.getElementById("home-screen").classList.remove("hidden");
-
-            const startBtn = document.getElementById("start-btn");
-            const maxUnlocked = Math.max(...unlockedLevels);
-            startBtn.className = `w-full text-white font-bold py-3 rounded-xl text-sm transition-all duration-300 shadow-md ${LEVEL_THEMES[maxUnlocked].button}`;
-            startBtn.innerText = `Lancer le Level ${maxUnlocked} ➔`;
-            startBtn.setAttribute("onclick", `startLevel(${maxUnlocked})`);
+            document.body.style.backgroundColor = "#070b13";
+            
+            const card = document.getElementById("main-card");
+            card.style.borderColor = "rgba(30, 41, 59, 1)";
+            card.style.boxShadow = "0 0 50px rgba(0,0,0,0.7)";
         }
     </script>
 </body>
