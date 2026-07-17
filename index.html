@@ -675,23 +675,7 @@
             }
         }
 
-        function selectOption(key, element) {
-            selectedKey = key;
-            
-            document.querySelectorAll(".option-btn").forEach(btn => {
-                btn.classList.remove("border-blue-500", "bg-blue-950/20");
-                btn.classList.add("border-slate-800/80", "bg-slate-900/40");
-                btn.querySelector(".option-radio").classList.remove("border-blue-500", "bg-blue-500");
-                btn.querySelector(".option-radio").innerHTML = "";
-            });
-
-            element.classList.remove("border-slate-800/80", "bg-slate-900/40");
-            element.classList.add("border-blue-500", "bg-blue-950/20");
-            
-            const radio = element.querySelector(".option-radio");
-            radio.classList.add("border-blue-500", "bg-blue-500");
-            radio.innerHTML = `<div class="w-1.5 h-1.5 rounded-full bg-slate-900"></div>`;
-
+        function sele
             const nextBtn = document.getElementById("next-btn");
             nextBtn.disabled = false;
             nextBtn.className = "w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-xl text-xs sm:text-sm transition-all duration-300 shadow-md cursor-pointer";
@@ -836,60 +820,9 @@
             let colorClass = "";
             
             if (totalExamScore >= 14) { appreciation = "Niveau Expert Absolu 🌟 !"; colorClass = "text-amber-400"; startVictoryFlowers(); playVictoryMusic(); }
-            else if (totalExamScore >= 10) { appreciation = "Niveau Satisfaisant ✨ !"; colorClass = "text-emerald-400"; startVictoryFlowers(); playVictoryMusic(); }
-            else { appreciation = "Niveau Moyen 📚, des révisions sont conseillées."; colorClass = "text-blue-400"; }
-            
-            document.getElementById("result-status").innerText = appreciation;
-            document.getElementById("result-status").className = `text-base font-bold mb-4 ${colorClass}`;
-            
-            document.getElementById("correction-title").innerText = "Mention Pédagogique :";
-            document.getElementById("correction-list").innerHTML = `
+            else ("correction-list").innerHTML = `
                 <div class="p-3 rounded-lg bg-slate-900/90 border border-slate-800 text-center text-slate-300">
-                    <p class="mb-1">L'apprenant <strong>${studentName}</strong> a traversé l'intégralité du programme d'évaluation automatique en Cascade Numérique.</p>
-                    <p class="text-[11px] text-slate-400 mt-2">Outil d'évaluation autonome conçu pour la 7ème Année de l'Éducation de Base.</p>
-                </div>
-            `;
-            
-            const actionBtn = document.getElementById("action-btn");
-            actionBtn.innerText = "🔄 Recommencer tout l'Examen";
-            actionBtn.className = "w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3.5 rounded-xl text-xs sm:text-sm transition duration-150 shadow-md cursor-pointer";
-            actionBtn.onclick = () => {
-                location.reload();
-            };
-            
-            document.getElementById("menu-btn").classList.add("hidden");
-            
-            speak(`Félicitations finales ${prefix} ${studentName}! Vous avez terminé tout le didacticiel avec un score total accumulé de ${totalExamScore} sur seize. À bientôt !`, 0.01);
-        }
-
-        function updateHomeDashboard() {
-            for (let l = 1; l <= 3; l++) {
-                const div = document.getElementById(`status-l${l}`);
-                if (!div) continue;
-
-                if (unlockedLevels.includes(l)) {
-                    div.classList.remove("opacity-40", "bg-slate-900/10", "border-slate-800/30");
-                    div.classList.add("cursor-pointer", "hover:scale-[1.02]");
-                    
-                    if (l === 1) { div.className = "bg-blue-950/20 border border-blue-500/30 p-3 rounded-xl cursor-pointer hover:scale-[1.02] transition-all duration-200"; div.querySelector("span:nth-child(2)").innerText = "Facile"; }
-                    if (l === 2) { div.className = "bg-purple-950/20 border border-purple-500/30 p-3 rounded-xl cursor-pointer hover:scale-[1.02] transition-all duration-200"; div.querySelector("span:nth-child(2)").innerText = "Moyen"; div.querySelector("span:nth-child(2)").className = "block text-xs font-bold text-slate-200"; }
-                    if (l === 3) { div.className = "bg-rose-950/20 border border-rose-500/30 p-3 rounded-xl cursor-pointer hover:scale-[1.02] transition-all duration-200"; div.querySelector("span:nth-child(2)").innerText = "Difficile"; div.querySelector("span:nth-child(2)").className = "block text-xs font-bold text-slate-200"; }
-                    
-                    div.setAttribute("onclick", `startLevel(${l})`);
-                }
-            }
-            
-            const startBtn = document.getElementById("start-btn");
-            if (unlockedLevels.includes(3)) {
-                startBtn.innerText = "Continuer vers le Level 3 ➔";
-                startBtn.className = "w-full bg-rose-600 hover:bg-rose-500 text-white font-bold py-3 rounded-xl text-sm transition-all duration-300 shadow-md";
-                startBtn.setAttribute("onclick", "startLevel(3)");
-            } else if (unlockedLevels.includes(2)) {
-                startBtn.innerText = "Continuer vers le Level 2 ➔";
-                startBtn.className = "w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-3 rounded-xl text-sm transition-all duration-300 shadow-md";
-                startBtn.setAttribute("onclick", "startLevel(2)");
-            }
-        }
+                    <p c
 
         function goHome() {
             stopVisualEffects();
