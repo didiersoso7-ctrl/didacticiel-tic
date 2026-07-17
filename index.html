@@ -204,7 +204,7 @@
             </div>
         </div>
 
-        <!-- Signature du développeur (Toujours visible au coin inférieur droit de la zone) -->
+        <!-- Signature du développeur -->
         <div class="absolute bottom-2 right-4 text-slate-500/70 hover:text-indigo-400 text-sm sm:text-base dev-signature tracking-wide transition-colors duration-300 select-none pointer-events-none">
             Dm's Soft
         </div>
@@ -274,7 +274,7 @@
             1: [
                 { q: "Qu'est-ce que l'informatique ?", options: { a: "L'art de dessiner avec des crayons", b: "La science du traitement automatique de l'information avec un ordinateur", c: "Le nettoyage des écrans", d: "La réparation mécanique des voitures" }, correct: "b" },
                 { q: "De quels mots vient le mot « Informatique » ?", options: { a: "Information et Théorie", b: "Ordinateur et Automatique", c: "Information et Automatique", d: "Écran et Souris" }, correct: "c" },
-                { q: "Qui a inventé le mot « Informatique » en 1962 ?", options: { a: "Steve Jobs", b: "Charles Babbage", c: "Philippe Dreyfus", d: "Jacques Perret" }, correct: "c" },
+                { q: "Qui a inventé le mot « Informatique » in 1962 ?", options: { a: "Steve Jobs", b: "Charles Babbage", c: "Philippe Dreyfus", d: "Jacques Perret" }, correct: "c" },
                 { q: "Qui a inventé le mot « Ordinateur » en 1955 ?", options: { a: "Philippe Dreyfus", b: "Jacques Perret", c: "Alan Turing", d: "Blaise Pascal" }, correct: "b" }
             ],
             2: [
@@ -312,6 +312,7 @@
         let backgroundMusicNode = null;
         let successMusicNode = null;
         let failMusicNode = null;
+        let motivationInterval = null;
         
         let activeInstruments = [];
 
@@ -374,21 +375,71 @@
             };
         }
 
+        // --- MUSIQUE EN JEU MODIFIÉE : PLUS CHAUDE ET RYTHMÉE ---
         function playInGameMusic() {
             stopAllMusic();
+            
+            // Accords chauds en arpège et ligne de basse plus rebondissante
             const patterns = [
                 {
+                    // Ligne mélodique haute et chaleureuse
                     type: "sine",
-                    volume: 0.08,
-                    notes: [261.63, 0, 293.66, 329.63, 0, 392.00, 349.23, 0, 329.63, 293.66, 0, 261.63]
+                    volume: 0.06,
+                    notes: [329.63, 392.00, 440.00, 523.25, 440.00, 392.00, 329.63, 0]
                 },
                 {
+                    // Basse ronde "plus chaude"
                     type: "triangle",
-                    volume: 0.05,
-                    notes: [130.81, 130.81, 146.83, 164.81, 164.81, 196.00, 174.61, 174.61, 164.81, 146.83, 146.83, 130.81]
+                    volume: 0.12,
+                    notes: [110.00, 110.00, 130.81, 0, 146.83, 146.83, 164.81, 130.81]
+                },
+                {
+                    // Petit contre-temps rythmique dynamique adouci
+                    type: "sawtooth",
+                    volume: 0.015,
+                    notes: [0, 220.00, 0, 261.63, 0, 293.66, 0, 196.00]
                 }
             ];
-            backgroundMusicNode = playCombinedMusicLoop(patterns, 0.45);
+            backgroundMusicNode = playCombinedMusicLoop(patterns, 0.30); // Tempo légèrement accéléré (plus entraînant)
+            
+            // Déclenche la voix chantée de motivation toutes les 14 secondes pendant le jeu
+            startMotivationSinging();
+        }
+
+        // --- FONCTION : VOIX CHANTÉE QUI RÉCUPÈRE LE NOM ET MOTIVE ---
+        function startMotivationSinging() {
+            if (motivationInterval) clearInterval(motivationInterval);
+            
+            motivationInterval = setInterval(() => {
+                if (document.getElementById("quiz-screen").classList.contains("hidden")) {
+                    clearInterval(motivationInterval);
+                    return;
+                }
+
+                // Étape 1 : Des notes chantantes customisées basées sur le nom
+                const notesVoix = [261.63, 293.66, 329.63, 349.23, 392.00, 440.00];
+                let delay = 0;
+                
+                // Simule une voix chantée synthétique rythmée qui scande le prénom
+                for (let i = 0; i < Math.min(studentName.length, 5); i++) {
+                    const noteAleatoire = notesVoix[Math.floor(Math.random() * notesVoix.length)];
+                    triggerSynthNote(noteAleatoire, "sine", 0.15, 0.25, delay);
+                    delay += 0.22;
+                }
+
+                // Étape 2 : Complété en même temps par une incitation vocale motivante en français
+                setTimeout(() => {
+                    const encouragements = [
+                        `Allez ${studentName}, tu es le meilleur !`,
+                        `Vas-y ${studentName}, concentre-toi, tu vas réussir !`,
+                        `C'est super ${studentName}, continue comme ça !`,
+                        `Montre leur ton niveau expert, ${studentName} !`
+                    ];
+                    const phrase = encouragements[Math.floor(Math.random() * encouragements.length)];
+                    speak(phrase, 0.03);
+                }, delay * 1000);
+
+            }, 14000); // Se produit toutes les 14 secondes durant la partie
         }
 
         function playVictoryMusic() {
@@ -446,11 +497,11 @@
             failMusicNode = playCombinedMusicLoop(patterns, 0.55);
         }
 
-        // --- ENTRAINEMENT DES MUSIQUES ---
         function stopAllMusic() {
             if (backgroundMusicNode) { backgroundMusicNode.stop(); backgroundMusicNode = null; }
             if (successMusicNode) { successMusicNode.stop(); successMusicNode = null; }
             if (failMusicNode) { failMusicNode.stop(); failMusicNode = null; }
+            if (motivationInterval) { clearInterval(motivationInterval); motivationInterval = null; }
             activeInstruments = [];
         }
 
@@ -611,7 +662,7 @@
             userAnswers.push(selectedKey);
             if (selectedKey === LEVELS[currentLevel][currentIndex].correct) {
                 score++;
-                totalExamScore++; // Cumul global
+                totalExamScore++;
             }
             currentIndex++;
             if (currentIndex < LEVELS[currentLevel].length) {
@@ -622,6 +673,7 @@
         }
 
         function showResults() {
+            stopAllMusic(); // Arrête la musique chaude de jeu et les chants
             document.getElementById("quiz-screen").classList.add("hidden");
             const resultScreen = document.getElementById("result-screen");
             resultScreen.classList.remove("hidden");
@@ -630,207 +682,109 @@
             const isWin = score === totalQ;
             const theme = LEVEL_THEMES[currentLevel];
 
-            const prefix = studentGender === 'M' ? "Monsieur" : "Mademoiselle";
-            const salutationEl = document.getElementById("student-salutation");
-            salutationEl.innerText = `${prefix} ${studentName},`;
-
             document.getElementById("final-score").innerText = `${score} / ${totalQ}`;
-            
-            const titleEl = document.getElementById("result-title");
-            const statusEl = document.getElementById("result-status");
-            const iconEl = document.getElementById("result-icon");
+            document.getElementById("student-salutation").innerText = `${studentGender === 'M' ? 'Monsieur' : 'Mademoiselle'} ${studentName}`;
+
             const actionBtn = document.getElementById("action-btn");
             const menuBtn = document.getElementById("menu-btn");
             const card = document.getElementById("main-card");
 
-            card.classList.remove("shake-element");
+            const correctionList = document.getElementById("correction-list");
+            correctionList.innerHTML = "";
 
-            // --- DEBLOCAGE DU NIVEAU SUIVANT SANS EXCEPTION ---
-            if (currentLevel < 3) {
-                if (!unlockedLevels.includes(currentLevel + 1)) {
-                    unlockedLevels.push(currentLevel + 1);
-                }
-            }
-
-            if (isWin) {
-                playVictoryMusic();
-                startVictoryFlowers();
-
-                titleEl.className = "text-xl sm:text-2xl font-extrabold text-emerald-400 mb-1";
-                statusEl.className = "text-sm font-semibold text-emerald-400 mb-4";
-                actionBtn.className = `w-full text-white font-bold py-3.5 rounded-xl text-xs sm:text-sm transition duration-150 shadow-md ${theme.button}`;
-                menuBtn.classList.add("hidden"); // Cache le bouton retour durant le parcours
-
-                let spokenMessage = "";
-                if (currentLevel < 3) {
-                    iconEl.innerText = "👑";
-                    titleEl.innerText = `Niveau ${currentLevel} Complété !`;
-                    statusEl.innerText = "Parfait ! Vous passez au niveau suivant !";
-                    actionBtn.innerText = "Passer au Level " + (currentLevel + 1) + " ➔";
-
-                    spokenMessage = `Félicitations, ${prefix} ${studentName} ! Vous avez brillamment réussi le niveau ${currentLevel} ! Passons maintenant au suivant.`;
-                } else {
-                    iconEl.innerText = "🏆";
-                    titleEl.innerText = "Maître Suprême des TIC !";
-                    statusEl.innerText = "Excellent travail ! Vous avez complété tous les niveaux !";
-                    
-                    // Fin complète de l'examen : On active le bouton de retour à l'accueil
-                    actionBtn.innerText = "🏠 Revenir à l'accueil (Recommencer)";
-                    actionBtn.className = "w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3.5 rounded-xl text-xs sm:text-sm transition duration-150 shadow-md";
-
-                    spokenMessage = `Merveilleux ! Toutes nos félicitations ${prefix} ${studentName} ! Vous viens de terminer tous les niveaux avec succès !`;
-                    
-                    envoyerNoteA_Excel(studentName, prefix, totalExamScore);
-                }
-
-                speak(spokenMessage, 0.1);
-
-            } else {
-                playFailureMusic();
-                startFailureRain();
-                
-                card.classList.add("shake-element");
-
-                iconEl.innerText = "⚠️";
-                titleEl.className = "text-xl sm:text-2xl font-extrabold text-yellow-500 mb-1";
-                titleEl.innerText = "Niveau Terminé avec des erreurs";
-                statusEl.className = "text-sm font-semibold text-slate-300 mb-4";
-                menuBtn.classList.add("hidden"); // Sécurité : pas de triche ou de retour intermédiaire
-
-                if (currentLevel < 3) {
-                    statusEl.innerText = "Le niveau suivant a été débloqué pour vous permettre de continuer l'apprentissage !";
-                    actionBtn.className = `w-full text-white font-bold py-3.5 rounded-xl text-xs sm:text-sm transition duration-150 shadow-md ${theme.button}`;
-                    actionBtn.innerText = "Passer au Level " + (currentLevel + 1) + " ➔";
-                } else {
-                    statusEl.innerText = "Vous êtes arrivé au bout du parcours !";
-                    actionBtn.className = "w-full bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold py-3.5 rounded-xl text-xs sm:text-sm transition duration-150 shadow-md";
-                    actionBtn.innerText = "🏠 Revenir à l'accueil (Recommencer)";
-                }
-
-                const failMessage = `Vous avez fait quelques erreurs, ${prefix} ${studentName}, mais pas de panique ! Nous débloquons le niveau suivant pour vous encourager à continuer d'apprendre.`;
-                speak(failMessage, 0.1);
-
-                // Sauvegarde de la note intermédiaire/finale
-                envoyerNoteA_Excel(studentName, prefix, totalExamScore);
-            }
-
-            // Correction détaillée
-            document.getElementById("correction-title").className = `text-[10px] font-bold uppercase tracking-wider border-b border-slate-800/60 pb-1.5 mb-2 ${theme.text}`;
-            const correctionContainer = document.getElementById("correction-list");
-            correctionContainer.innerHTML = "";
-            LEVELS[currentLevel].forEach((q, idx) => {
-                const uAns = userAnswers[idx];
-                const isCorrect = uAns === q.correct;
-                const item = document.createElement("div");
-                item.className = "border-b border-slate-900 pb-2 last:border-0";
-                item.innerHTML = `
-                    <p class="font-semibold text-slate-300">Q${idx+1}: ${q.q}</p>
-                    <p class="text-[11px] mt-0.5">Votre réponse : <span class="${isCorrect ? 'text-emerald-400' : 'text-red-400'} font-bold">${uAns.toUpperCase()}) ${q.options[uAns]}</span></p>
-                    ${!isCorrect ? `<p class="text-[11px] text-emerald-400 mt-0.5">Bonne réponse : <span class="font-bold">${q.correct.toUpperCase()}) ${q.options[q.correct]}</span></p>` : ''}
+            LEVELS[currentLevel].forEach((item, index) => {
+                const uAns = userAnswers[index];
+                const isCorrect = uAns === item.correct;
+                const div = document.createElement("div");
+                div.className = "border-l-2 pl-2 " + (isCorrect ? "border-green-500" : "border-rose-500");
+                div.innerHTML = `
+                    <p class="font-semibold text-slate-200">Q${index+1}: ${item.q}</p>
+                    <p class="text-[11px] ${isCorrect ? 'text-green-400' : 'text-rose-400'}">Votre réponse : ${uAns.toUpperCase()}) ${item.options[uAns]}</p>
+                    ${!isCorrect ? `<p class="text-[11px] text-green-400">Correct : ${item.correct.toUpperCase()}) ${item.options[item.correct]}</p>` : ''}
                 `;
-                correctionContainer.appendChild(item);
+                correctionList.appendChild(div);
             });
 
-            updateHomeDashboard();
+            if (isWin) {
+                document.getElementById("result-icon").innerText = "🎉";
+                document.getElementById("result-title").innerText = "Niveau Complété !";
+                document.getElementById("result-status").innerText = "Félicitations ! Score parfait ! Un sans-faute remarquable.";
+                document.getElementById("result-status").className = "text-sm font-semibold text-green-400 mb-4";
+                
+                actionBtn.className = `w-full text-white font-bold py-3.5 rounded-xl text-xs sm:text-sm transition duration-150 shadow-md ${theme.button}`;
+                
+                if (currentLevel < 3) {
+                    const nextLvl = currentLevel + 1;
+                    if (!unlockedLevels.includes(nextLvl)) unlockedLevels.push(nextLvl);
+                    actionBtn.innerText = `Passer au Level ${nextLvl} ➔`;
+                    actionBtn.onclick = () => startLevel(nextLvl);
+                    menuBtn.classList.add("hidden");
+                } else {
+                    actionBtn.innerText = "🏆 Examen Terminé avec Succès !";
+                    actionBtn.onclick = null;
+                    actionBtn.className = "w-full bg-gradient-to-r from-yellow-500 to-amber-600 text-white font-bold py-3.5 rounded-xl text-xs sm:text-sm cursor-default shadow-md";
+                    menuBtn.classList.remove("hidden");
+                }
+
+                playVictoryMusic();
+                startVictoryFlowers();
+                speak(`Félicitations ${studentName} ! Tu as obtenu un score parfait de ${score} sur ${totalQ}. Tu es un génie !`, 0.01);
+            } else {
+                card.classList.add("shake-element");
+                setTimeout(() => card.classList.remove("shake-element"), 500);
+
+                document.getElementById("result-icon").innerText = "📉";
+                document.getElementById("result-title").innerText = "Échec du Niveau";
+                document.getElementById("result-status").innerText = `Vous devez obtenir ${totalQ}/${totalQ} pour passer au niveau suivant.`;
+                document.getElementById("result-status").className = "text-sm font-semibold text-rose-400 mb-4";
+                
+                actionBtn.className = "w-full bg-rose-600 hover:bg-rose-500 text-white font-bold py-3.5 rounded-xl text-xs sm:text-sm transition duration-150 shadow-md";
+                actionBtn.innerText = "Recommencer le Niveau ↻";
+                actionBtn.onclick = () => startLevel(currentLevel);
+                
+                menuBtn.classList.remove("hidden");
+
+                playFailureMusic();
+                startFailureRain();
+                speak(`Dommage ${studentName}, tu as fait ${score} sur ${totalQ}. Ne te décourage pas, réessaie, tu vas y arriver !`, 0.01);
+            }
+            
+            updateHomeBadges();
         }
 
-        function nextAction() {
-            stopVisualEffects();
-            stopAllMusic();
-            window.speechSynthesis.cancel();
-            
-            if (currentLevel < 3) {
-                startLevel(currentLevel + 1);
-            } else {
-                goHome();
+        function updateHomeBadges() {
+            for (let i = 2; i <= 3; i++) {
+                const badge = document.getElementById(`status-l${i}`);
+                if (unlockedLevels.includes(i)) {
+                    badge.classList.remove("opacity-40");
+                    badge.classList.add("cursor-pointer", "hover:scale-[1.02]", "bg-purple-950/20", "border-purple-500/30");
+                    const titleSpan = badge.children[1];
+                    titleSpan.innerText = i === 2 ? "Moyen" : "Difficile";
+                    titleSpan.classList.remove("text-slate-400");
+                    titleSpan.classList.add("text-slate-200");
+                    badge.setAttribute("onclick", `startLevel(${i})`);
+                }
             }
         }
 
         function goHome() {
             stopVisualEffects();
             stopAllMusic();
-            window.speechSynthesis.cancel();
+            
             document.body.style.backgroundColor = "#070b13";
-            document.getElementById("main-card").style.borderColor = "rgba(30, 41, 59, 0.5)";
-            document.getElementById("main-card").style.boxShadow = "0 0 40px rgba(0,0,0,0.6)";
+            const card = document.getElementById("main-card");
+            card.style.borderColor = "#1e293b";
+            card.style.boxShadow = "0 0 50px rgba(0,0,0,0.7)";
+
             document.getElementById("result-screen").classList.add("hidden");
+            document.getElementById("quiz-screen").classList.add("hidden");
             document.getElementById("home-screen").classList.remove("hidden");
-            
-            // À la fin du parcours complet (retour à l'accueil), on réinitialise l'accès pour pouvoir recommencer
-            unlockedLevels = [1];
-            updateHomeDashboard();
-        }
 
-        function updateHomeDashboard() {
-            const names = ["", "Facile", "Moyen", "Difficile"];
-            const colors = ["", "blue-400", "purple-400", "rose-400"];
-            const prefix = studentGender === 'M' ? "Monsieur" : "Mademoiselle";
-            
-            document.getElementById("welcome-message").innerText = `Bonjour ${prefix} ${studentName}, prêt à relever le défi ?`;
-
-            for (let i = 1; i <= 3; i++) {
-                const badge = document.getElementById(`status-l${i}`);
-                if (unlockedLevels.includes(i)) {
-                    badge.style.opacity = "1";
-                    
-                    if (i === 1) {
-                        badge.className = "bg-blue-950/20 border border-blue-500/40 p-3 rounded-xl cursor-pointer hover:scale-[1.02] transition-all duration-200";
-                    } else if (i === 2) {
-                        badge.className = "bg-purple-950/20 border border-purple-500/40 p-3 rounded-xl cursor-pointer hover:scale-[1.02] transition-all duration-200";
-                    } else if (i === 3) {
-                        badge.className = "bg-rose-950/20 border border-rose-500/40 p-3 rounded-xl cursor-pointer hover:scale-[1.02] transition-all duration-200";
-                    }
-                    
-                    badge.innerHTML = `
-                        <span class="block text-[10px] text-${colors[i]} font-bold">LEVEL ${i}</span>
-                        <span class="block text-xs font-bold text-slate-100">${names[i]} 🔓</span>
-                        <span class="text-[9px] text-slate-400">${LEVELS[i].length} Questions</span>
-                    `;
-                    badge.onclick = () => startLevel(i);
-                } else {
-                    badge.style.opacity = "0.4";
-                    badge.className = "bg-slate-900/10 border border-slate-800/30 p-3 rounded-xl transition-all duration-200";
-                    badge.innerHTML = `
-                        <span class="block text-[10px] text-slate-500 font-bold">LEVEL ${i}</span>
-                        <span class="block text-xs font-bold text-slate-500">${names[i]} 🔒</span>
-                        <span class="text-[9px] text-slate-500">${LEVELS[i].length} Q</span>
-                    `;
-                    badge.onclick = null;
-                }
-            }
-        }
-
-        // --- ENVOI AUTOMATIQUE DES NOTES VERS GOOGLE SHEETS VIA SHEETDB ---
-        function envoyerNoteA_Excel(nomEleve, civiliteEleve, scoreEleve) {
-            const apiURL = "https://sheetdb.io/api/v1/8jutgab6bhp94"; 
-            const dateAujourdhui = new Date().toLocaleString("fr-FR");
-
-            const donnees = {
-                data: [
-                    {
-                        nom: nomEleve,
-                        civilite: civiliteEleve,
-                        score: scoreEleve + " / 16",
-                        date: dateAujourdhui
-                    }
-                ]
-            };
-
-            fetch(apiURL, {
-                method: 'POST',
-                headers: {
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(donnees)
-            })
-            .then(response => response.json())
-            .then(data => {
-                console.log("Note enregistrée avec succès !", data);
-            })
-            .catch(error => {
-                console.error("Erreur d'envoi :", error);
-            });
+            const startBtn = document.getElementById("start-btn");
+            const maxUnlocked = Math.max(...unlockedLevels);
+            startBtn.className = `w-full text-white font-bold py-3 rounded-xl text-sm transition-all duration-300 shadow-md ${LEVEL_THEMES[maxUnlocked].button}`;
+            startBtn.innerText = `Lancer le Level ${maxUnlocked} ➔`;
+            startBtn.setAttribute("onclick", `startLevel(${maxUnlocked})`);
         }
     </script>
 </body>
