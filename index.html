@@ -1,1 +1,199 @@
-LMQJDVBWXFNQE
+import tkinter as tk
+from tkinter import ttk, messagebox
+
+# Création de la fenêtre principale
+root = tk.Tk()
+root.title("SGR - Système de Gestion des Résultats Académiques")
+root.geometry("1000x600") # Légèrement élargi pour accueillir le formulaire
+root.configure(bg="#f4f6f9")
+
+# Style personnalisé
+style = ttk.Style()
+style.theme_use("clam")
+style.configure("TNotebook", background="#f4f6f9", padding=10)
+style.configure("TNotebook.Tab", font=("Arial", 11, "bold"), padding=[15, 5])
+style.configure("TButton", font=("Arial", 10, "bold"), background="#1a73e8", foreground="white")
+style.map("TButton", background=[("active", "#1557b0")])
+
+# Création du système d'onglets
+notebook = ttk.Notebook(root)
+notebook.pack(expand=True, fill="both")
+
+# =========================================================================
+# ONGLETS 1 : INTERFACE ENSEIGNANT (Saisie avec Formulaire à côté)
+# =========================================================================
+ong_enseignant = ttk.Frame(notebook)
+notebook.add(ong_enseignant, text="1. Interface Enseignant")
+
+lbl_title_ens = tk.Label(ong_enseignant, text="SGR - SAISIE DES NOTES (Session Normale)", font=("Arial", 14, "bold"), bg="#1a73e8", fg="white", pady=10)
+lbl_title_ens.pack(fill="x")
+
+frame_filtres = tk.Frame(ong_enseignant, pady=10)
+frame_filtres.pack()
+tk.Label(frame_filtres, text="Année: 2025-2026 | Semestre 1 | Matière: Modélisation UML", font=("Arial", 11, "italic")).pack()
+
+# Zone principale divisée en 2 : Tableau à gauche, Formulaire à droite
+zone_principale = tk.Frame(ong_enseignant)
+zone_principale.pack(fill="both", expand=True, padx=20, pady=10)
+
+# --- COLONNE GAUCHE : LE TABLEAU ---
+frame_gauche = tk.LabelFrame(zone_principale, text=" Liste des étudiants ", font=("Arial", 10, "bold"), padx=10, pady=10)
+frame_gauche.pack(side="left", fill="both", expand=True, padx=(0, 10))
+
+columns = ("matricule", "nom", "cc", "examen")
+tree = ttk.Treeview(frame_gauche, columns=columns, show="headings", height=5)
+tree.heading("matricule", text="Matricule")
+tree.heading("nom", text="Nom & Prénom")
+tree.heading("cc", text="Note CC (/20)")
+tree.heading("examen", text="Note Examen (/20)")
+
+# Dimensions des colonnes
+tree.column("matricule", width=120, anchor="center")
+tree.column("nom", width=180, anchor="w")
+tree.column("cc", width=100, anchor="center")
+tree.column("examen", width=110, anchor="center")
+
+tree.insert("", "end", values=("MAT-2026-001", "KABAMBA Jean", "", ""))
+tree.insert("", "end", values=("MAT-2026-002", "LIKASI Marie", "", ""))
+tree.insert("", "end", values=("MAT-2026-003", "MUTEBA David", "", ""))
+tree.pack(fill="both", expand=True)
+
+# --- COLONNE DROITE : LE FORMULAIRE DE SAISIE ---
+frame_droite = tk.LabelFrame(zone_principale, text=" Formulaire de Saisie des Notes ", font=("Arial", 10, "bold"), padx=15, pady=15, width=300)
+frame_droite.pack(side="right", fill="y", padx=(10, 0))
+frame_droite.pack_propagate(False) # Garder la largeur fixe de 300px
+
+# Champs de saisie
+tk.Label(frame_droite, text="Étudiant sélectionné :", font=("Arial", 9, "bold")).pack(anchor="w", pady=(0, 2))
+ent_nom = tk.Entry(frame_droite, font=("Arial", 10), bg="#e8eaed", state="readonly")
+ent_nom.pack(fill="x", pady=(0, 15))
+
+# Pour la simulation de sélection dans la maquette
+def selectionner_element(event):
+    selected_item = tree.selection()
+    if selected_item:
+        valeurs = tree.item(selected_item, "values")
+        ent_nom.config(state="normal")
+        ent_nom.delete(0, tk.END)
+        ent_nom.insert(0, valeurs[1]) # Nom de l'étudiant
+        ent_nom.config(state="readonly")
+
+tree.bind("<<TreeviewSelect>>", selectionner_element)
+
+tk.Label(frame_droite, text="Note de Contrôle Continu (CC) :", font=("Arial", 9)).pack(anchor="w", pady=(0, 2))
+ent_cc = tk.Entry(frame_droite, font=("Arial", 10))
+ent_cc.pack(fill="x", pady=(0, 15))
+
+tk.Label(frame_droite, text="Note d'Examen :", font=("Arial", 9)).pack(anchor="w", pady=(0, 2))
+ent_exam = tk.Entry(frame_droite, font=("Arial", 10))
+ent_exam.pack(fill="x", pady=(0, 20))
+
+# Fonction de mise à jour pour simuler la saisie dans le tableau
+def appliquer_notes():
+    selected_item = tree.selection()
+    if not selected_item:
+        messagebox.showwarning("Sélection", "Veuillez d'abord sélectionner un étudiant dans le tableau à gauche.")
+        return
+    
+    val_cc = ent_cc.get()
+    val_exam = ent_exam.get()
+    
+    if not val_cc or not val_exam:
+        messagebox.showwarning("Champs vides", "Veuillez remplir les deux notes avant d'appliquer.")
+        return
+        
+    valeurs = tree.item(selected_item, "values")
+    tree.item(selected_item, values=(valeurs[0], valeurs[1], val_cc, val_exam))
+    messagebox.showinfo("Succès", f"Notes enregistrées pour {valeurs[1]} dans la grille !")
+    
+    # Réinitialisation du formulaire
+    ent_cc.delete(0, tk.END)
+    ent_exam.delete(0, tk.END)
+
+btn_appliquer = ttk.Button(frame_droite, text="Appliquer à l'Étudiant", command=appliquer_notes)
+btn_appliquer.pack(fill="x", pady=5)
+
+
+# --- BARRE DE BOUTONS DU BAS ---
+frame_btn_ens = tk.Frame(ong_enseignant, pady=10)
+frame_btn_ens.pack()
+
+btn_save = ttk.Button(frame_btn_ens, text="Enregistrer Brouillon Global", command=lambda: messagebox.showinfo("Succès", "Brouillon global enregistré !"))
+btn_lock = ttk.Button(frame_btn_ens, text="Verrouiller la session", command=lambda: messagebox.showwarning("Attention", "Cette action verrouille définitivement les notes."))
+
+btn_save.grid(row=0, column=0, padx=10)
+btn_lock.grid(row=0, column=1, padx=10)
+
+
+# =========================================================================
+# ONGLETS 2 : INTERFACE JURY (Tableau de Délibération)
+# =========================================================================
+ong_jury = ttk.Frame(notebook)
+notebook.add(ong_jury, text="2. Interface Membre du Jury")
+
+lbl_title_jury = tk.Label(ong_jury, text="SGR - TABLEAU DE DÉLIBÉRATION AUTOMATIQUE", font=("Arial", 14, "bold"), bg="#34a853", fg="white", pady=10)
+lbl_title_jury.pack(fill="x")
+
+frame_filtres_j = tk.Frame(ong_jury, pady=10)
+frame_filtres_j.pack()
+tk.Label(frame_filtres_j, text="Filière: Génie Informatique | Classe: Licence 3 | Session: Normale", font=("Arial", 11, "italic")).pack()
+
+btn_auto = ttk.Button(ong_jury, text="Lancer la Délibération Automatique", command=lambda: messagebox.showinfo("Calcul", "Calcul des moyennes et compensations terminé !"))
+btn_auto.pack(pady=5)
+
+tree_frame_j = tk.Frame(ong_jury)
+tree_frame_j.pack(pady=10, fill="both", expand=True, padx=20)
+
+columns_j = ("matricule", "nom", "moy", "dec", "rachat")
+tree_j = ttk.Treeview(tree_frame_j, columns=columns_j, show="headings", height=3)
+tree_j.heading("matricule", text="Matricule")
+tree_j.heading("nom", text="Nom & Prénom")
+tree_j.heading("moy", text="Moy. Générale")
+tree_j.heading("dec", text="Décision Auto")
+tree_j.heading("rachat", text="Rachat Manuel")
+
+tree_j.insert("", "end", values=("MAT-2026-003", "MUTEBA David", "9.75 / 20", "Ajourné", "Accorder +0.25 (Racheté)"))
+tree_j.insert("", "end", values=("MAT-2026-009", "TSHELA Sarah", "9.60 / 20", "Ajourné", "Ne pas racheter"))
+tree_j.pack(fill="both", expand=True)
+
+btn_close_sess = ttk.Button(ong_jury, text="Valider et Clôturer la Session")
+btn_close_sess.pack(pady=10)
+
+
+# =========================================================================
+# ONGLETS 3 : INTERFACE ÉTUDIANT (Consultation des Notes)
+# =========================================================================
+ong_etudiant = ttk.Frame(notebook)
+notebook.add(ong_etudiant, text="3. Interface Étudiant")
+
+lbl_title_etu = tk.Label(ong_etudiant, text="SGR - MON RELEVÉ DE NOTES", font=("Arial", 14, "bold"), bg="#ff9900", fg="white", pady=10)
+lbl_title_etu.pack(fill="x")
+
+frame_info_etu = tk.Frame(ong_etudiant, pady=10)
+frame_info_etu.pack(anchor="w", padx=20)
+tk.Label(frame_info_etu, text="Étudiant: KABAMBA Jean | Matricule: MAT-2026-001", font=("Arial", 11, "bold")).pack(anchor="w")
+tk.Label(frame_info_etu, text="Classe: Licence 3 Génie Informatique | Année: 2025-2026", font=("Arial", 10, "italic")).pack(anchor="w")
+
+tree_frame_e = tk.Frame(ong_etudiant)
+tree_frame_e.pack(pady=5, fill="both", expand=True, padx=20)
+
+columns_e = ("code", "ue", "note", "credits", "statut")
+tree_e = ttk.Treeview(tree_frame_e, columns=columns_e, show="headings", height=3)
+tree_e.heading("code", text="Code UE")
+tree_e.heading("ue", text="Unité d'Enseignement")
+tree_e.heading("note", text="Note /20")
+tree_e.heading("credits", text="Crédits")
+tree_e.heading("statut", text="Statut")
+
+tree_e.insert("", "end", values=("UE_INF3", "UE INFORMATIQUE", "13.10", "06", "Validé"))
+tree_e.insert("", "end", values=("  UML_31", "  - Modélisation UML", "13.50", "-", "-"))
+tree_e.insert("", "end", values=("  BDD_31", "  - Bases de Données", "12.70", "-", "-"))
+tree_e.pack(fill="both", expand=True)
+
+lbl_res = tk.Label(ong_etudiant, text="MOYENNE SEMESTRIELLE : 13.10 / 20   |   RÉSULTAT : ADMIS", font=("Arial", 12, "bold"), fg="green")
+lbl_res.pack(pady=10)
+
+btn_pdf = ttk.Button(ong_etudiant, text="Télécharger le Relevé de Notes (PDF)", command=lambda: messagebox.showinfo("Téléchargement", "Génération du PDF réussie !"))
+btn_pdf.pack(pady=5)
+
+root.mainloop()
