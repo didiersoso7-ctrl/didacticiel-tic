@@ -333,4 +333,476 @@
                 { q: "À quoi sert la touche 'Echap' (Esc) de votre clavier ?", options: { a: "À valider une action", b: "À annuler ou quitter une opération en cours", c: "À faire une capture d'écran", d: "À éteindre l'ordinateur" }, correct: "b" },
                 { q: "Quel est le rôle du système d'exploitation (ex: Windows, Android) ?", options: { a: "Protéger l'ordinateur de la poussière", b: "Gérer et faire fonctionner le matériel et les applications", c: "Créer des tableaux de calculs", d: "Naviguer sur le web uniquement" }, correct: "b" },
                 { q: "Le terme anglais 'Computer science' fait référence à :", options: { a: "L'informatique", b: "L'imprimante", c: "La calculatrice", d: "La physique" }, correct: "a" },
-                { q: "Quelle combinaison de touches permet de copier un élément sélectionné sous Windows ?", options: { a: "Ctrl + V", b: "Ctrl + C", c: "Ctrl + X",
+                { q: "Quelle combinaison de touches permet de copier un élément sélectionné sous Windows ?", options: { a: "Ctrl + V", b: "Ctrl + C", c: "Ctrl + X", d: "Alt + F4" }, correct: "b" }
+            ]
+        };
+
+        const LEVEL_THEMES = {
+            1: { primary: "rgb(59, 130, 246)", bg: "#060b18", border: "rgba(59, 130, 246, 0.3)", glow: "rgba(59, 130, 246, 0.2)", text: "text-blue-400", badge: "bg-blue-500/20 text-blue-300 border-blue-500/30", bar: "bg-gradient-to-r from-blue-500 to-cyan-500" },
+            2: { primary: "rgb(147, 51, 234)", bg: "#0f071e", border: "rgba(147, 51, 234, 0.3)", glow: "rgba(147, 51, 234, 0.2)", text: "text-purple-400", badge: "bg-purple-500/20 text-purple-300 border-purple-500/30", bar: "bg-gradient-to-r from-purple-500 to-pink-500" },
+            3: { primary: "rgb(244, 63, 94)", bg: "#16050b", border: "rgba(244, 63, 94, 0.3)", glow: "rgba(244, 63, 94, 0.2)", text: "text-rose-400", badge: "bg-rose-500/20 text-rose-300 border-rose-500/30", bar: "bg-gradient-to-r from-rose-500 to-orange-500" }
+        };
+
+        const REAL_FLOWERS = ["fleur1.png", "fleur2.png", "fleur3.png"];
+
+        function triggerSynthNote(freq, type, volume, duration, delay = 0) {
+            if (!audioCtx) return;
+            try {
+                const osc = audioCtx.createOscillator();
+                const gainNode = audioCtx.createGain();
+                
+                osc.type = type;
+                osc.frequency.setValueAtTime(freq, audioCtx.currentTime + delay);
+                
+                gainNode.gain.setValueAtTime(volume, audioCtx.currentTime + delay);
+                gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + delay + duration - 0.02);
+                
+                osc.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+                
+                osc.start(audioCtx.currentTime + delay);
+                osc.stop(audioCtx.currentTime + delay + duration);
+
+                activeInstruments.push({ gainNode, originalVolume: volume, duration, startTime: audioCtx.currentTime + delay });
+            } catch(e) {}
+        }
+
+        function setAllMusicVolume(factor) {
+            activeInstruments.forEach(inst => {
+                if (audioCtx && audioCtx.currentTime < inst.startTime + inst.duration) {
+                    try {
+                        inst.gainNode.gain.setValueAtTime(inst.originalVolume * factor, audioCtx.currentTime);
+                    } catch(e) {}
+                }
+            });
+        }
+
+        function playCombinedMusicLoop(patterns, tempo) {
+            initMobileAudioEngine();
+            let beatIndex = 0;
+            function runBeat() {
+                if (!audioCtx) return;
+                activeInstruments = activeInstruments.filter(inst => audioCtx.currentTime < inst.startTime + inst.duration);
+
+                patterns.forEach(instrument => {
+                    const currentNote = instrument.notes[beatIndex % instrument.notes.length];
+                    if (Array.isArray(currentNote)) {
+                        currentNote.forEach(freq => { if (freq > 0) triggerSynthNote(freq, instrument.type, instrument.volume, tempo); });
+                    } else if (currentNote > 0) {
+                        triggerSynthNote(currentNote, instrument.type, instrument.volume, tempo);
+                    }
+                });
+                beatIndex++;
+            }
+            runBeat();
+            const interval = setInterval(runBeat, tempo * 1000);
+            return { stop: () => clearInterval(interval) };
+        }
+
+        function playInGameMusic() {
+            stopAllMusic();
+            initMobileAudioEngine();
+            
+            const patterns = [
+                { type: "sine", volume: 0.05, notes: [329.63, 392.00, 440.00, 523.25, 440.00, 392.00, 329.63, 0] },
+                { type: "triangle", volume: 0.10, notes: [110.00, 110.00, 130.81, 0, 146.83, 146.83, 164.81, 130.81] }
+            ];
+            try {
+                backgroundMusicNode = playCombinedMusicLoop(patterns, 0.32);
+            } catch(e) {}
+            startMotivationSinging();
+        }
+
+        function startMotivationSinging() {
+            if (motivationInterval) clearInterval(motivationInterval);
+            
+            motivationInterval = setInterval(() => {
+                if (document.getElementById("quiz-screen").classList.contains("hidden")) {
+                    clearInterval(motivationInterval);
+                    return;
+                }
+
+                const notesVoix = [261.63, 293.66, 329.63, 392.00, 440.00];
+                let delay = 0;
+                for (let i = 0; i < Math.min(studentName.length, 4); i++) {
+                    const noteAleatoire = notesVoix[Math.floor(Math.random() * notesVoix.length)];
+                    triggerSynthNote(noteAleatoire, "sine", 0.12, 0.25, delay);
+                    delay += 0.22;
+                }
+
+                setTimeout(() => {
+                    const encouragements = [
+                        `Allez ${studentName}, concentre-toi !`,
+                        `C'est super ${studentName}, continue !`,
+                        `Montre ton niveau expert, ${studentName} !`
+                    ];
+                    speak(encouragements[Math.floor(Math.random() * encouragements.length)], 0.03);
+                }, delay * 1000);
+
+            }, 16000); 
+        }
+
+        function playVictoryMusic() {
+            stopAllMusic();
+            const patterns = [
+                { type: "triangle", volume: 0.06, notes: [523.25, 659.25, 783.99, 1046.50, 0, 783.99, 1046.50, 1318.51] },
+                { type: "sine", volume: 0.06, notes: [[261.63, 329.63], [329.63, 392.00], [349.23, 440.00], 0] }
+            ];
+            try {
+                successMusicNode = playCombinedMusicLoop(patterns, 0.30);
+            } catch(e) {}
+        }
+
+        function playFailureMusic() {
+            stopAllMusic();
+            const patterns = [
+                { type: "sine", volume: 0.08, notes: [146.83, 138.59, 130.81, 110.00, 98.00, 0] }
+            ];
+            try {
+                failMusicNode = playCombinedMusicLoop(patterns, 0.50);
+            } catch(e) {}
+        }
+
+        function stopAllMusic() {
+            if (backgroundMusicNode) { backgroundMusicNode.stop(); backgroundMusicNode = null; }
+            if (successMusicNode) { successMusicNode.stop(); successMusicNode = null; }
+            if (failMusicNode) { failMusicNode.stop(); failMusicNode = null; }
+            if (motivationInterval) { clearInterval(motivationInterval); motivationInterval = null; }
+            activeInstruments = [];
+        }
+
+        function startVictoryFlowers() {
+            stopVisualEffects();
+            const container = document.getElementById("visual-effects-container");
+            visualEffectsInterval = setInterval(() => {
+                const img = document.createElement("img");
+                img.className = "flower-item";
+                img.src = REAL_FLOWERS[Math.floor(Math.random() * REAL_FLOWERS.length)];
+                img.style.left = (Math.random() * 80) + "vw";
+                const size = Math.random() * 50 + 65; 
+                img.style.width = size + "px";
+                img.style.animationDuration = (Math.random() * 2 + 4) + "s";
+                container.appendChild(img);
+                setTimeout(() => img.remove(), 6000);
+            }, 400);
+        }
+
+        function startFailureRain() {
+            stopVisualEffects();
+            const container = document.getElementById("visual-effects-container");
+            visualEffectsInterval = setInterval(() => {
+                const drop = document.createElement("div");
+                drop.className = "rain-drop";
+                drop.style.left = Math.random() * 100 + "vw";
+                drop.style.animationDuration = (Math.random() * 0.4 + 0.7) + "s";
+                container.appendChild(drop);
+                setTimeout(() => drop.remove(), 1500);
+            }, 45);
+        }
+
+        function stopVisualEffects() {
+            if (visualEffectsInterval) clearInterval(visualEffectsInterval);
+            document.getElementById("visual-effects-container").innerHTML = "";
+        }
+
+        // --- CAMPAGNE JEU MODIFIÉE ---
+        let currentLevel = 1;
+        let unlockedLevels = [1];
+        let currentIndex = 0;
+        let score = 0;
+        let skippedQuestionsCount = 0;
+        let answeredQuestionsCount = 0;
+        let userAnswers = [];
+        let selectedKey = null;
+
+        function applyTheme(level) {
+            const theme = LEVEL_THEMES[level];
+            document.body.style.backgroundColor = theme.bg;
+            
+            const card = document.getElementById("main-card");
+            card.style.borderColor = theme.primary;
+            card.style.boxShadow = `0 0 35px ${theme.glow}`;
+
+            document.getElementById("level-badge").className = `px-2.5 py-0.5 rounded-full text-[10px] font-bold transition-all duration-300 ${theme.badge}`;
+            document.getElementById("level-badge").innerText = `LEVEL ${level}`;
+            document.getElementById("question-counter").className = `font-bold text-xs transition-all duration-300 ${theme.text}`;
+            document.getElementById("question-text").style.borderLeftColor = theme.primary;
+            document.getElementById("progress-bar").className = `h-full rounded-full transition-all duration-300 ${theme.bar}`;
+        }
+
+        function startLevel(lvl) {
+            if (!unlockedLevels.includes(lvl)) return;
+            
+            initMobileAudioEngine(); 
+            stopVisualEffects();
+            stopAllMusic();
+
+            currentLevel = lvl;
+            currentIndex = 0;
+            score = 0;
+            skippedQuestionsCount = 0;
+            answeredQuestionsCount = 0;
+            userAnswers = [];
+            selectedKey = null;
+
+            applyTheme(currentLevel);
+
+            document.getElementById("home-screen").classList.add("hidden");
+            document.getElementById("result-screen").classList.add("hidden");
+            document.getElementById("final-summary-screen").classList.add("hidden");
+            document.getElementById("quiz-screen").classList.remove("hidden");
+            
+            playInGameMusic();
+            loadQuestion();
+        }
+
+        function loadQuestion() {
+            selectedKey = null;
+            const currentQ = LEVELS[currentLevel][currentIndex];
+            const totalQ = LEVELS[currentLevel].length;
+            
+            document.getElementById("question-counter").innerText = `Question ${currentIndex + 1}/${totalQ}`;
+            document.getElementById("progress-bar").style.width = `${Math.round((currentIndex / totalQ) * 100)}%`;
+            document.getElementById("question-text").innerText = currentQ.q;
+            
+            const container = document.getElementById("options-container");
+            container.innerHTML = "";
+
+            const nextBtn = document.getElementById("next-btn");
+            nextBtn.disabled = true;
+            nextBtn.className = "w-full bg-slate-800 text-slate-500 cursor-not-allowed font-bold py-3 rounded-xl text-xs sm:text-sm transition-all duration-300";
+            nextBtn.innerText = "Sélectionnez une réponse";
+
+            for (const [key, value] of Object.entries(currentQ.options)) {
+                const btn = document.createElement("button");
+                btn.className = "option-btn w-full flex items-center p-3 bg-slate-900/40 hover:bg-slate-800/40 rounded-xl cursor-pointer border border-slate-800/80 transition-all duration-150 text-left";
+                btn.onclick = () => selectOption(key, btn);
+                btn.innerHTML = `
+                    <span class="w-4 h-4 rounded-full border-2 border-slate-600 flex items-center justify-center mr-3 flex-shrink-0 option-radio"></span>
+                    <span class="text-slate-300 text-xs sm:text-sm font-medium"><strong class="mr-1 text-slate-400 uppercase">${key}.</strong> ${value}</span>
+                `;
+                container.appendChild(btn);
+            }
+        }
+
+        function selectOption(key, element) {
+            initMobileAudioEngine(); 
+            selectedKey = key;
+            
+            document.querySelectorAll(".option-btn").forEach(btn => {
+                btn.classList.remove("border-blue-500", "bg-blue-950/20");
+                btn.classList.add("border-slate-800/80", "bg-slate-900/40");
+                btn.querySelector(".option-radio").classList.remove("border-blue-500", "bg-blue-500");
+                btn.querySelector(".option-radio").innerHTML = "";
+            });
+
+            element.classList.remove("border-slate-800/80", "bg-slate-900/40");
+            element.classList.add("border-blue-500", "bg-blue-500/20");
+            
+            const radio = element.querySelector(".option-radio");
+            radio.classList.add("border-blue-500", "bg-blue-500");
+            radio.innerHTML = `<div class="w-1.5 h-1.5 rounded-full bg-slate-900"></div>`;
+
+            const nextBtn = document.getElementById("next-btn");
+            nextBtn.disabled = false;
+            nextBtn.className = "w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-xl text-xs sm:text-sm transition-all duration-300 shadow-md cursor-pointer";
+            nextBtn.innerText = (currentIndex === LEVELS[currentLevel].length - 1) ? "Terminer le Niveau" : "Valider la réponse ➔";
+        }
+
+        function skipQuestion() {
+            initMobileAudioEngine();
+            const currentQ = LEVELS[currentLevel][currentIndex];
+            
+            skippedQuestionsCount++;
+            userAnswers.push({
+                question: currentQ.q,
+                chosen: "Sautée",
+                chosenText: "Vous avez ignoré cette question (oublié la réponse).",
+                correct: currentQ.correct,
+                correctText: currentQ.options[currentQ.correct]
+            });
+
+            moveForward();
+        }
+
+        function submitAnswer() {
+            if (!selectedKey) return;
+            initMobileAudioEngine();
+            
+            const currentQ = LEVELS[currentLevel][currentIndex];
+            answeredQuestionsCount++;
+            
+            userAnswers.push({
+                question: currentQ.q,
+                chosen: selectedKey,
+                chosenText: currentQ.options[selectedKey],
+                correct: currentQ.correct,
+                correctText: currentQ.options[currentQ.correct]
+            });
+
+            if (selectedKey === currentQ.correct) score++;
+            moveForward();
+        }
+
+        function moveForward() {
+            currentIndex++;
+            if (currentIndex < LEVELS[currentLevel].length) {
+                loadQuestion();
+            } else {
+                showResults();
+            }
+        }
+
+        function showResults() {
+            stopAllMusic();
+            document.getElementById("quiz-screen").classList.add("hidden");
+            document.getElementById("result-screen").classList.remove("hidden");
+
+            scoresHistory[currentLevel] = score;
+            skippedHistory[currentLevel] = skippedQuestionsCount;
+            answeredHistory[currentLevel] = answeredQuestionsCount;
+
+            const totalQ = LEVELS[currentLevel].length;
+            const prefix = studentGender === 'M' ? "Monsieur" : "Mademoiselle";
+            
+            document.getElementById("student-salutation").innerText = `${prefix} ${studentName}`;
+            document.getElementById("final-score").innerText = `${score} / ${totalQ}`;
+
+            const cList = document.getElementById("correction-list");
+            cList.innerHTML = "";
+
+            userAnswers.forEach((ans, idx) => {
+                const item = document.createElement("div");
+                item.className = "p-2.5 rounded-lg bg-slate-900/60 border border-slate-800/60";
+                
+                if (ans.chosen === "Sautée") {
+                    item.innerHTML = `
+                        <p class="font-bold text-slate-200 mb-1">Q${idx + 1}: ${ans.question}</p>
+                        <p class="text-amber-400 font-medium italic">Sautée / Oubliée</p>
+                        <p class="text-slate-400 text-[11px] mt-0.5">Réponse correcte : (${ans.correct.toUpperCase()}) ${ans.correctText}</p>
+                    `;
+                } else {
+                    const isCorrect = ans.chosen === ans.correct;
+                    item.innerHTML = `
+                        <p class="font-bold text-slate-200 mb-1">Q${idx + 1}: ${ans.question}</p>
+                        <p class="${isCorrect ? 'text-emerald-400' : 'text-rose-400'} font-medium">Votre réponse : (${ans.chosen.toUpperCase()}) ${ans.chosenText}</p>
+                        ${!isCorrect ? `<p class="text-slate-400 text-[11px] mt-0.5">Réponse correcte : (${ans.correct.toUpperCase()}) ${ans.correctText}</p>` : ''}
+                    `;
+                }
+                cList.appendChild(item);
+            });
+
+            const actionBtn = document.getElementById("action-btn");
+            if (currentLevel < 3) {
+                const nextLvl = currentLevel + 1;
+                if (!unlockedLevels.includes(nextLvl)) {
+                    unlockedLevels.push(nextLvl);
+                    document.getElementById(`status-l2`).classList.remove("opacity-40", "cursor-not-allowed");
+                    const labelL = document.getElementById(`label-l${nextLvl}`);
+                    if (labelL) labelL.innerText = nextLvl === 2 ? "Moyen" : "Difficile";
+                }
+                
+                actionBtn.innerText = "Passer au Level Suivant ➔";
+                actionBtn.className = "w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3.5 rounded-xl text-xs sm:text-sm transition duration-150 shadow-md";
+            } else {
+                actionBtn.innerText = "Afficher le Bilan Global Final 📊";
+                actionBtn.className = "w-full bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-white font-bold py-3.5 rounded-xl text-xs sm:text-sm transition duration-150 shadow-md";
+            }
+
+            if (score >= (totalQ / 2)) {
+                playVictoryMusic();
+                startVictoryFlowers();
+                document.getElementById("result-icon").innerText = "🎉";
+                document.getElementById("result-status").innerText = "Félicitations ! Objectif atteint.";
+                document.getElementById("result-status").className = "text-sm font-semibold mb-4 text-emerald-400";
+                speak(`Bravo ${prefix} ${studentName}, vous avez validé ce niveau avec un score de ${score} sur ${totalQ}.`);
+            } else {
+                playFailureMusic();
+                startFailureRain();
+                document.getElementById("result-icon").innerText = "🌧️";
+                document.getElementById("result-status").innerText = "Courage ! Vous pouvez faire mieux.";
+                document.getElementById("result-status").className = "text-sm font-semibold mb-4 text-amber-400";
+                speak(`C'est complété ${prefix} ${studentName}. Votre score est de ${score} sur ${totalQ}. Ne lâchez rien !`);
+            }
+        }
+
+        function nextAction() {
+            if (currentLevel < 3) {
+                startLevel(currentLevel + 1);
+            } else {
+                showGlobalFinalSummary();
+            }
+        }
+
+        function showGlobalFinalSummary() {
+            stopAllMusic();
+            stopVisualEffects();
+            
+            document.getElementById("result-screen").classList.add("hidden");
+            document.getElementById("home-screen").classList.add("hidden");
+            document.getElementById("final-summary-screen").classList.remove("hidden");
+
+            let totalScore = 0;
+            let totalSkipped = 0;
+            let totalAnswered = 0;
+            let totalQuestionsAllGame = 16; 
+
+            for (let i = 1; i <= 3; i++) {
+                totalScore += (scoresHistory[i] || 0);
+                totalSkipped += (skippedHistory[i] || 0);
+                totalAnswered += (answeredHistory[i] || 0);
+            }
+
+            const prefix = studentGender === 'M' ? "Monsieur" : "Mademoiselle";
+            document.getElementById("final-student-salutation").innerText = `${prefix} ${studentName}`;
+            document.getElementById("global-score-text").innerText = `${totalScore} / ${totalQuestionsAllGame}`;
+            document.getElementById("global-answered-text").innerText = totalAnswered;
+            document.getElementById("global-skipped-text").innerText = totalSkipped;
+
+            const evalBox = document.getElementById("final-evaluation-box");
+            const percentage = (totalScore / totalQuestionsAllGame) * 100;
+
+            if (percentage >= 80) {
+                evalBox.className = "p-3.5 rounded-xl border border-emerald-500/30 bg-emerald-950/20 text-emerald-400 text-xs font-semibold mb-6";
+                evalBox.innerText = "🏆 Niveau Expert absolu ! Vos compétences numériques en Informatique de 7ème année sont exceptionnelles.";
+                speak(`Félicitations globales ${prefix} ${studentName} ! Vous êtes un véritable expert de niveau supérieur.`);
+            } else if (percentage >= 50) {
+                evalBox.className = "p-3.5 rounded-xl border border-blue-500/30 bg-blue-950/20 text-blue-400 text-xs font-semibold mb-6";
+                evalBox.innerText = "👍 Bon niveau global. Les bases du traitement automatique et des périphériques sont acquises.";
+                speak(`Bilan positif ${prefix} ${studentName}. Vous avez obtenu la moyenne globale sur le didacticiel.`);
+            } else {
+                evalBox.className = "p-3.5 rounded-xl border border-rose-500/30 bg-rose-950/20 text-rose-400 text-xs font-semibold mb-6";
+                evalBox.innerText = "📚 Des notions restent à revoir. N'hésitez pas à relire vos cours de TIC et à refaire les niveaux.";
+                speak(`Bilan final mitigé ${prefix} ${studentName}. Nous vous encourageons à recommencer le didacticiel pour vous perfectionner.`);
+            }
+        }
+
+        function goHome() {
+            stopAllMusic();
+            stopVisualEffects();
+            document.getElementById("result-screen").classList.add("hidden");
+            document.getElementById("final-summary-screen").classList.add("hidden");
+            document.getElementById("home-screen").classList.remove("hidden");
+            
+            document.body.style.backgroundColor = "#070b13";
+            const card = document.getElementById("main-card");
+            card.style.borderColor = "rgba(30, 41, 59, 1)";
+            card.style.boxShadow = "0 0 50px rgba(0,0,0,0.7)";
+        }
+
+        function restartEntireGame() {
+            unlockedLevels = [1];
+            
+            const badge2 = document.getElementById(`status-l2`);
+            badge2.classList.add("opacity-40", "cursor-not-allowed");
+            document.getElementById("label-l2").innerText = "Moyen 🔒";
+            
+            const badge3 = document.getElementById(`status-l3`);
+            badge3.classList.add("opacity-40", "cursor-not-allowed");
+            document.getElementById("label-l3").innerText = "Difficile 🔒";
+
+            goHome();
+        }
+    </script>
+</body>
+</html>
